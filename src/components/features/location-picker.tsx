@@ -67,7 +67,6 @@ function LocationPickerContent({
     })
 
     return () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(google.maps.event as any).removeListener(listener)
     }
   }, [placesLib, map, onLocationChange, onAddressChange])
