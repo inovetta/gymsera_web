@@ -202,7 +202,7 @@ export default function GymDetailPage() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
-                  {gym.genderType === 'MALE_ONLY' ? 'Men Only' : gym.genderType === 'FEMALE_ONLY' ? 'Women Only' : 'Mixed'}
+                  {gym.genderType === 'MALE' ? 'Men Only' : gym.genderType === 'FEMALE' ? 'Women Only' : 'Mixed'}
                 </Badge>
                 {gym.featured && <Badge className="bg-primary text-white">Featured</Badge>}
               </div>
