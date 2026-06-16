@@ -236,7 +236,7 @@ export default function GymDetailPage() {
             {gym.genderType && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" />
-                {gym.genderType === 'MIXED' ? 'Mixed Gender' : gym.genderType === 'MALE_ONLY' ? 'Men Only' : 'Women Only'}
+                {gym.genderType === 'MIXED' ? 'Mixed Gender' : gym.genderType === 'MALE' ? 'Men Only' : 'Women Only'}
               </div>
             )}
             {allPlans.length > 0 && (
