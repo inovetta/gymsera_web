@@ -94,10 +94,10 @@ export default function Navbar() {
                   <button className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user.profileImageUrl} />
-                      <AvatarFallback className="text-xs">{getInitials(user.fullName)}</AvatarFallback>
+                      <AvatarFallback className="text-xs">{getInitials(user.fullName || '')}</AvatarFallback>
                     </Avatar>
                     <span className={cn('text-sm font-medium hidden lg:block', isHomePage && !isScrolled ? 'text-white' : 'text-foreground')}>
-                      {user.fullName.split(' ')[0]}
+                      {(user.fullName || '').split(' ')[0] || 'User'}
                     </span>
                     <ChevronDown className={cn('h-4 w-4', isHomePage && !isScrolled ? 'text-white/70' : 'text-muted-foreground')} />
                   </button>
