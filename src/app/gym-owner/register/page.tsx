@@ -1163,7 +1163,7 @@ export default function GymOwnerRegisterPage() {
                       onChange={(e) => setBankRef(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground mt-1.5">
-                      If you've already made the transfer, enter your transaction reference. Our team will verify it.
+                      If you&apos;ve already made the transfer, enter your transaction reference. Our team will verify it.
                     </p>
                   </div>
                 )}
@@ -1203,7 +1203,7 @@ export default function GymOwnerRegisterPage() {
                   <h1 className="text-3xl font-bold mb-3">Application Submitted!</h1>
                   <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
                     Welcome to GymsEra! Your gym registration is now under review.
-                    We'll be in touch within <strong>1–2 business days</strong>.
+                    We&apos;ll be in touch within <strong>1–2 business days</strong>.
                   </p>
                 </div>
 

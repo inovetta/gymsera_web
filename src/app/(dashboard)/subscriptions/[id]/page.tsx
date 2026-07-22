@@ -302,7 +302,7 @@ export default function SubscriptionDetailPage() {
                     ) : (
                       <>
                         <p className="text-sm text-muted-foreground">
-                          Transfer the amount to the gym's bank account, then upload your payment receipt below.
+                          Transfer the amount to the gym&apos;s bank account, then upload your payment receipt below.
                         </p>
                         <div className="flex items-center gap-3">
                           <input
