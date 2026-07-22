@@ -1,7 +1,6 @@
 import apiClient from './client'
 import { ApiResponse, City, GymListing, GymReview } from '@/types'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeGym(raw: any): GymListing {
   const facilitiesJson: Record<string, boolean> = raw.facilitiesJson ?? {}
   return {

@@ -16,20 +16,40 @@ interface AuthActions {
   hydrate: () => void
 }
 
-export const useAuthStore = create<AuthState & AuthActions>((set) => ({
-  user: null,
-  accessToken: null,
-  refreshToken: null,
-  isAuthenticated: false,
-  isLoading: true,
+// Read localStorage synchronously so the store is ready before the first
+// client render — no useEffect delay, no loading-spinner flicker.
+function readFromStorage() {
+  if (typeof window === 'undefined') {
+    return { user: null, accessToken: null, refreshToken: null, isAuthenticated: false }
+  }
+  const accessToken = localStorage.getItem('gymsera_access_token')
+  const refreshToken = localStorage.getItem('gymsera_refresh_token')
+  const userStr = localStorage.getItem('gymsera_user')
+  const user = userStr ? (JSON.parse(userStr) as User) : null
+  const isAuthenticated = !!accessToken && !!user
+  if (!isAuthenticated) {
+    document.cookie = 'gymsera_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  }
+  return { user, accessToken, refreshToken, isAuthenticated }
+}
 
+export const useAuthStore = create<AuthState & AuthActions>((set) => ({
+  ...readFromStorage(),
+  // isLoading stays true only during SSR; on the client we resolved it above.
+  isLoading: typeof window === 'undefined',
+
+  // Still expose hydrate() so AuthProvider / any consumer can re-sync if needed.
   hydrate: () => {
     if (typeof window === 'undefined') return
     const accessToken = localStorage.getItem('gymsera_access_token')
     const refreshToken = localStorage.getItem('gymsera_refresh_token')
     const userStr = localStorage.getItem('gymsera_user')
     const user = userStr ? JSON.parse(userStr) : null
-    set({ accessToken, refreshToken, user, isAuthenticated: !!accessToken && !!user, isLoading: false })
+    const isAuthenticated = !!accessToken && !!user
+    if (!isAuthenticated) {
+      document.cookie = 'gymsera_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    }
+    set({ accessToken, refreshToken, user, isAuthenticated, isLoading: false })
   },
 
   setAuth: (user, accessToken, refreshToken) => {
@@ -53,3 +73,4 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
     set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false })
   },
 }))
+
