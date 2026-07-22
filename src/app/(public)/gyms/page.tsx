@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { Search, SlidersHorizontal, ChevronLeft, ChevronRight, X, Navigation, Loader2 } from 'lucide-react'
@@ -16,7 +16,7 @@ import { EmptyState } from '@/components/features/empty-state'
 import { discoveryApi } from '@/lib/api/discovery'
 import { useDebounce } from '@/hooks/use-debounce'
 
-export default function GymsPage() {
+function GymsPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -337,5 +337,13 @@ export default function GymsPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function GymsPage() {
+  return (
+    <Suspense>
+      <GymsPageContent />
+    </Suspense>
   )
 }
