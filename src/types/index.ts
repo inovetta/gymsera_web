@@ -230,6 +230,21 @@ export interface PlatformPackage {
   status: string
 }
 
+// The central GymsEra plan catalog (BillingPlan on the backend) — branch-
+// count tiers with a monthly/annual PKR price, distinct from the legacy
+// PlatformPackage above. `?platform=web` shapes in monthlyPriceId/
+// annualPriceId (Stripe Price IDs) alongside the display price; the web
+// client never hardcodes a price or Price ID, it always asks.
+export interface BillingPlan {
+  id: string
+  branchCount: number
+  monthlyPrice: number
+  annualPrice: number
+  currency: string
+  monthlyPriceId?: string | null
+  annualPriceId?: string | null
+}
+
 export interface AccountStatementEntry {
   id: string
   type: 'SUBSCRIPTION' | 'PAYMENT' | 'INVOICE'
