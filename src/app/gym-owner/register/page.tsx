@@ -27,6 +27,7 @@ import { authApi } from '@/lib/api/auth'
 import { discoveryApi } from '@/lib/api/discovery'
 import { tenantsApi } from '@/lib/api/tenants'
 import { packagesApi } from '@/lib/api/packages'
+import { billingPlansApi } from '@/lib/api/billing-plans'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
@@ -169,7 +170,7 @@ export default function GymOwnerRegisterPage() {
   const [error, setError] = useState('')
   const [tenant, setTenant] = useState<Tenant | null>(null)
   const [selectedPackage, setSelectedPackage] = useState<PlatformPackage | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState<'bank' | 'later'>('bank')
+  const [paymentMethod, setPaymentMethod] = useState<'bank' | 'later' | 'card'>('bank')
   const [bankRef, setBankRef] = useState('')
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
@@ -216,8 +217,26 @@ export default function GymOwnerRegisterPage() {
     queryFn: () => packagesApi.getPackages(),
   })
 
+  // GymsEra's own central plan catalog — a deliberately separate catalog
+  // from the legacy PlatformPackage above (see TenantSubscription.model.js's
+  // comment on why). Only needed for the card/Stripe payment option below;
+  // the bank-transfer / pay-later paths keep using PlatformPackage exactly
+  // as before.
+  const { data: billingPlansData } = useQuery({
+    queryKey: ['billing-plans'],
+    queryFn: () => billingPlansApi.getPlans(),
+    enabled: isAuthenticated,
+  })
+
   const cities = citiesData?.data?.cities || []
   const packages = packagesData?.data?.filter((p) => p.status === 'ACTIVE') || []
+  const billingPlans = billingPlansData?.data?.plans || []
+  // The BillingPlan tier matching the legacy package's branch count — picked
+  // automatically so a host who already chose a package at step 4 doesn't
+  // have to choose an equivalent plan again just to pay by card.
+  const matchedBillingPlan = selectedPackage
+    ? billingPlans.find((p) => p.branchCount === selectedPackage.maxBranches) || null
+    : null
 
   // ── Forms ──────────────────────────────────────────────────────────────────
 
@@ -331,6 +350,25 @@ export default function GymOwnerRegisterPage() {
     }),
     onSuccess: () => { setStep(6); setError('') },
     onError: (err: any) => setError(err?.response?.data?.message || 'Failed to submit application.'),
+  })
+
+  // Card payment bypasses admin review entirely — GymsEra's own catalog +
+  // Stripe Checkout is self-serve, verified by Stripe's webhook the moment
+  // it completes (see stripe-billing.service.js). The redirect to Stripe
+  // itself grants nothing; only that webhook does.
+  const checkoutMutation = useMutation({
+    mutationFn: () => billingPlansApi.createCheckoutSession({
+      billingPlanId: matchedBillingPlan!.id,
+      billingCycle: selectedPackage?.billingCycle === 'YEARLY' ? 'YEARLY' : 'MONTHLY',
+      // Redirects to the dedicated GymsEra Billing page rather than back into
+      // this wizard — the wizard's in-memory step state doesn't survive a
+      // full-page navigation to Stripe and back, but the tenant/gym profile
+      // already exist server-side by this point regardless.
+      successUrl: `${window.location.origin}/gymsera-billing?checkout=success`,
+      cancelUrl: `${window.location.origin}/gymsera-billing?checkout=cancelled`,
+    }),
+    onSuccess: (res) => { window.location.href = res.data.url },
+    onError: (err: any) => setError(err?.response?.data?.message || 'Failed to start checkout.'),
   })
 
   const copyToClipboard = (text: string, field: string) => {
@@ -1150,6 +1188,28 @@ export default function GymOwnerRegisterPage() {
                         </div>
                       </div>
                     </div>
+
+                    {matchedBillingPlan && (
+                      <div
+                        onClick={() => setPaymentMethod('card')}
+                        className={cn(
+                          'cursor-pointer border-2 rounded-xl p-4 transition-all',
+                          paymentMethod === 'card' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn('w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0', paymentMethod === 'card' ? 'bg-primary border-primary' : 'border-border')}>
+                            {paymentMethod === 'card' && <div className="w-2 h-2 rounded-full bg-white" />}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">Pay with Card</p>
+                            <p className="text-xs text-muted-foreground">
+                              Pay securely with Stripe now — your account activates immediately, no review wait.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1171,10 +1231,17 @@ export default function GymOwnerRegisterPage() {
                 {/* Application note */}
                 <div className="bg-muted/50 rounded-xl p-4 flex items-start gap-3 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <span>
-                    After submitting, our team will review your application within <strong className="text-foreground">1–2 business days</strong> and
-                    contact you to finalize payment and account activation.
-                  </span>
+                  {paymentMethod === 'card' ? (
+                    <span>
+                      You&apos;ll be redirected to Stripe to complete payment securely. Your account activates
+                      automatically the moment payment is confirmed — no review wait.
+                    </span>
+                  ) : (
+                    <span>
+                      After submitting, our team will review your application within <strong className="text-foreground">1–2 business days</strong> and
+                      contact you to finalize payment and account activation.
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex justify-between pt-2">
@@ -1183,10 +1250,17 @@ export default function GymOwnerRegisterPage() {
                   </Button>
                   <Button
                     size="lg"
-                    loading={finalizeMutation.isPending}
-                    onClick={() => { setError(''); finalizeMutation.mutate() }}
+                    loading={paymentMethod === 'card' ? checkoutMutation.isPending : finalizeMutation.isPending}
+                    onClick={() => {
+                      setError('')
+                      if (paymentMethod === 'card') {
+                        checkoutMutation.mutate()
+                      } else {
+                        finalizeMutation.mutate()
+                      }
+                    }}
                   >
-                    Submit Application <ChevronRight className="h-4 w-4 ml-1" />
+                    {paymentMethod === 'card' ? 'Continue to Stripe' : 'Submit Application'} <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
               </div>
@@ -1227,7 +1301,9 @@ export default function GymOwnerRegisterPage() {
                     )}
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Payment</span>
-                      <span className="font-medium">{paymentMethod === 'bank' ? 'Bank Transfer' : 'Pay After Approval'}</span>
+                      <span className="font-medium">
+                        {paymentMethod === 'bank' ? 'Bank Transfer' : paymentMethod === 'card' ? 'Card (Stripe)' : 'Pay After Approval'}
+                      </span>
                     </div>
                     {bankRef && (
                       <div className="flex justify-between text-sm">
