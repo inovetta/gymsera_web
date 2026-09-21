@@ -175,9 +175,9 @@ export default function RegisterPage() {
               </div>
               <label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer">
                 I agree to the{' '}
-                <Link href="#" className="text-primary hover:underline">Terms of Service</Link>
+                <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>
                 {' '}and{' '}
-                <Link href="#" className="text-primary hover:underline">Privacy Policy</Link>
+                <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
               </label>
             </div>
             {errors.terms && <p className="text-xs text-destructive">{errors.terms.message}</p>}

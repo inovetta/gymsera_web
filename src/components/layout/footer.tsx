@@ -1,12 +1,12 @@
 import Link from 'next/link'
-import { Dumbbell, Instagram, Twitter, Facebook, Youtube } from 'lucide-react'
+import { Dumbbell, Instagram, Twitter, Facebook, Youtube, Mail, Phone } from 'lucide-react'
 
 export default function Footer() {
   return (
     <footer className="bg-slate-900 text-slate-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-          {/* Brand */}
+          {/* Brand & Support Contact */}
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -16,10 +16,31 @@ export default function Footer() {
                 Gyms<span className="text-primary">Era</span>
               </span>
             </Link>
-            <p className="text-sm text-slate-400 leading-relaxed">
+            <p className="text-sm text-slate-400 leading-relaxed mb-4">
               Discover, join, and manage gym memberships all in one place. Your fitness journey starts here.
             </p>
-            <div className="flex items-center gap-3 mt-6">
+
+            {/* Support Info */}
+            <div className="space-y-2 mb-6 text-xs text-slate-400">
+              <a
+                href="https://wa.me/923055901414"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 hover:text-emerald-400 transition-colors"
+              >
+                <Phone className="w-3.5 h-3.5 text-emerald-500" />
+                <span>WhatsApp: +92 305 5901414</span>
+              </a>
+              <a
+                href="mailto:support@gymsera.com"
+                className="flex items-center gap-2 hover:text-primary transition-colors"
+              >
+                <Mail className="w-3.5 h-3.5 text-primary" />
+                <span>support@gymsera.com</span>
+              </a>
+            </div>
+
+            <div className="flex items-center gap-3">
               {[Instagram, Twitter, Facebook, Youtube].map((Icon, i) => (
                 <a
                   key={i}
@@ -75,15 +96,15 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Company */}
+          {/* Legal & Support */}
           <div>
-            <h3 className="font-semibold text-white mb-4">Company</h3>
+            <h3 className="font-semibold text-white mb-4">Support &amp; Legal</h3>
             <ul className="space-y-3">
               {[
-                { label: 'About Us', href: '#' },
-                { label: 'Contact', href: '#' },
-                { label: 'Privacy Policy', href: '#' },
-                { label: 'Terms of Service', href: '#' },
+                { label: 'Support & Contact', href: '/contact' },
+                { label: 'Privacy Policy', href: '/privacy' },
+                { label: 'Terms & Conditions', href: '/terms' },
+                { label: 'Refund & Cancellation Policy', href: '/refund-policy' },
               ].map((link) => (
                 <li key={link.label}>
                   <Link href={link.href} className="text-sm text-slate-400 hover:text-white transition-colors">

@@ -22,6 +22,7 @@ const navLinks = [
   { label: 'Home', href: '/' },
   { label: 'Find Gyms', href: '/gyms' },
   { label: 'For Gym Owners', href: '/for-gym-owners' },
+  { label: 'Support', href: '/contact' },
 ]
 
 export default function Navbar() {
