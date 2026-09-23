@@ -8,6 +8,9 @@ const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' })
 export const metadata: Metadata = {
   title: { default: 'GymsEra', template: '%s | GymsEra' },
   description: 'Find the perfect gym near you. Browse, compare, and join gyms in your city.',
+  verification: {
+    google: 'yHrN-mR3e4ZmapCk5Hl4FGGEpKoGpf6Y-fHgH4vHQOo',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
