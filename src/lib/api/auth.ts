@@ -44,6 +44,14 @@ export const authApi = {
     return data
   },
 
+  // Same endpoint and { idToken } payload the Flutter app's
+  // google_auth_provider.dart already sends — auth.service.js#googleLogin
+  // creates the account on first login exactly like the app's own flow does.
+  googleLogin: async (idToken: string): Promise<ApiResponse<LoginResponse>> => {
+    const { data } = await apiClient.post('/auth/social/google', { idToken })
+    return data
+  },
+
   register: async (payload: RegisterPayload): Promise<ApiResponse<{ message: string }>> => {
     const { data } = await apiClient.post('/auth/register', payload)
     return data
