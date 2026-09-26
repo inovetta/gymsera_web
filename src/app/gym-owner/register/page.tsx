@@ -364,7 +364,9 @@ export default function GymOwnerRegisterPage() {
       // this wizard — the wizard's in-memory step state doesn't survive a
       // full-page navigation to Stripe and back, but the tenant/gym profile
       // already exist server-side by this point regardless.
-      successUrl: `${window.location.origin}/gymsera-billing?checkout=success`,
+      // Stripe fills in {CHECKOUT_SESSION_ID}; the billing page verifies that
+      // session server-side — the "success" flag alone proves nothing (BILL-14).
+      successUrl: `${window.location.origin}/gymsera-billing?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${window.location.origin}/gymsera-billing?checkout=cancelled`,
     }),
     onSuccess: (res) => { window.location.href = res.data.url },
