@@ -28,6 +28,10 @@ const STATUS_LABEL: Record<string, string> = {
   SCHEDULED: 'Cancelling at period end',
 }
 
+// Return-from-Stripe confirmation polling: every 3 s for up to ~1 minute.
+const CONFIRM_POLL_MS = 3000
+const CONFIRM_MAX_POLLS = 20
+
 const PLATFORM_LABEL: Record<string, string> = {
   MANUAL: 'Bank Transfer / Manual',
   IOS: 'Apple App Store',
@@ -40,17 +44,41 @@ export default function GymsEraBillingPage() {
   const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const checkoutResult = searchParams.get('checkout')
+  const sessionId = searchParams.get('session_id')
   const [changingPlan, setChangingPlan] = useState(false)
   const [changeCycle, setChangeCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY')
 
   useEffect(() => {
-    if (checkoutResult === 'success') {
-      toast({ title: 'Payment successful', description: 'Your GymsEra subscription is now active.', variant: 'success' })
-    } else if (checkoutResult === 'cancelled') {
+    if (checkoutResult === 'cancelled') {
       toast({ title: 'Checkout cancelled', description: 'No payment was made — you can try again anytime.', variant: 'destructive' })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkoutResult])
+
+  // Returning from Stripe Checkout: only the backend's server-side check of
+  // the Checkout Session counts, polled until the webhook has granted the
+  // plan. `?checkout=success` on its own proves nothing and shows nothing
+  // (BILL-14).
+  const sessionCheck = useQuery({
+    queryKey: ['stripe-checkout-session', sessionId],
+    queryFn: () => billingPlansApi.getCheckoutSessionStatus(sessionId!),
+    enabled: !!sessionId,
+    retry: false,
+    refetchInterval: (query) => {
+      const s = query.state.data?.data
+      const settled = s && (s.entitled || !s.confirmed)
+      return settled || query.state.dataUpdateCount >= CONFIRM_MAX_POLLS ? false : CONFIRM_POLL_MS
+    },
+  })
+  const checkout = sessionCheck.data?.data
+  const checkoutEntitled = checkout?.entitled === true
+
+  useEffect(() => {
+    if (!checkoutEntitled) return
+    toast({ title: 'Payment confirmed', description: 'Your GymsEra subscription is now active.', variant: 'success' })
+    queryClient.invalidateQueries({ queryKey: ['gymsera-subscription'] })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkoutEntitled])
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['gymsera-subscription'],
@@ -222,12 +250,34 @@ export default function GymsEraBillingPage() {
         </Card>
       )}
 
-      {checkoutResult === 'success' && (
-        <div className="flex items-center gap-2 text-sm text-success">
-          <CheckCircle2 className="h-4 w-4" />
-          Payment confirmed.
-          <button onClick={() => refetch()} className="underline underline-offset-2">Refresh status</button>
-        </div>
+      {sessionId && (
+        sessionCheck.isError ? (
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4" />
+            We couldn&apos;t verify this payment.
+          </div>
+        ) : !checkout ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Confirming payment…
+          </div>
+        ) : checkout.entitled ? (
+          <div className="flex items-center gap-2 text-sm text-success">
+            <CheckCircle2 className="h-4 w-4" />
+            Payment confirmed.
+            <button onClick={() => refetch()} className="underline underline-offset-2">Refresh status</button>
+          </div>
+        ) : checkout.confirmed ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Payment received — activating your plan…
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4" />
+            This payment was not completed. No plan was activated.
+          </div>
+        )
       )}
     </div>
   )

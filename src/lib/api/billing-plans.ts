@@ -18,6 +18,13 @@ export interface CurrentTenantSubscription {
   overQuotaCount: number
 }
 
+export interface CheckoutSessionStatus {
+  status: 'open' | 'complete' | 'expired'
+  paymentStatus: string
+  confirmed: boolean
+  entitled: boolean
+}
+
 // The one central GymsEra plan catalog — the same BillingPlan rows iOS,
 // Android, and the in-app Host Area all read via GET /billing/plans. The
 // website never hardcodes a branch tier's price or Stripe Price ID; it
@@ -38,6 +45,15 @@ export const billingPlansApi = {
     cancelUrl: string
   }): Promise<ApiResponse<{ url: string; sessionId: string }>> => {
     const { data } = await apiClient.post('/billing/stripe/checkout-session', input)
+    return data
+  },
+
+  // GET /billing/stripe/session/:id — the return page's only proof of
+  // payment: the backend re-fetches the Checkout Session from Stripe and says
+  // whether the webhook has granted the plan yet. `?checkout=success` in the
+  // URL is never trusted (BILL-14).
+  getCheckoutSessionStatus: async (sessionId: string): Promise<ApiResponse<CheckoutSessionStatus>> => {
+    const { data } = await apiClient.get(`/billing/stripe/session/${encodeURIComponent(sessionId)}`)
     return data
   },
 
