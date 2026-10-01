@@ -188,7 +188,15 @@ export default function PrivacyPolicyPage() {
             <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-slate-600">
               <li><strong>Access & Modification:</strong> You can review and edit your name, phone number, and avatar directly in the mobile app or web portal profile settings.</li>
               <li><strong>Permissions:</strong> You can revoke location, camera, or photo library permissions anytime via your device operating system settings.</li>
-              <li><strong>Account Deletion:</strong> You can permanently request account deletion inside the mobile app (Settings &rarr; Delete Account) or by emailing <a href="mailto:support@gymsera.com" className="text-primary hover:underline">support@gymsera.com</a>. All personally identifiable information is purged or anonymized in compliance with applicable laws.</li>
+              <li>
+                <strong>Account Deletion:</strong> You can delete your account in the mobile app (Settings &rarr; Delete Account) after confirming it is you with your password or by signing in again with Google or Apple. If you cannot use the app, email <a href="mailto:support@gymsera.com" className="text-primary hover:underline">support@gymsera.com</a> and we will start the same process once we have verified it is you.
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  <li><strong>30 days to change your mind.</strong> Your account is switched off straight away, but nothing is erased for 30 days. Signing in again during that time lets you cancel the deletion.</li>
+                  <li><strong>After 30 days</strong> your name, e-mail, phone number, photo, devices, saved gyms, notifications, messages and any health or emergency-contact details a gym held for you are removed or anonymized.</li>
+                  <li><strong>Gym owners:</strong> if you subscribed through the App Store or Google Play, cancel that subscription there first (we cannot cancel it for you); web subscriptions are cancelled for you. Deleting an owner account closes the gym: its members are notified, their memberships end after the 30 days, and their own accounts and receipts stay with them.</li>
+                  <li><strong>What we keep.</strong> Payment, invoice and accounting records are kept for 6 years because tax and accounting rules require it. They are anonymized, so they are no longer linked to your name or contact details. Identity documents submitted when applying to list a gym are deleted 90 days after the account is deleted or the application is rejected.</li>
+                </ul>
+              </li>
             </ul>
           </section>
 
