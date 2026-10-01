@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Link from 'next/link'
-import { CheckCircle, Dumbbell, Building2, Package, ChevronRight } from 'lucide-react'
+import { CheckCircle, Dumbbell, Building2, Package, ChevronRight, ShieldCheck, Upload, FileText, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -63,6 +63,7 @@ export default function OnboardingPage() {
   const [tenant, setTenant] = useState<Tenant | null>(null)
   const [selectedPackage, setSelectedPackage] = useState<PlatformPackage | null>(null)
   const [error, setError] = useState('')
+  const [kycFiles, setKycFiles] = useState<File[]>([])
 
   const { data: citiesData } = useQuery({
     queryKey: ['cities'],
@@ -93,12 +94,22 @@ export default function OnboardingPage() {
   })
 
   const gymProfileMutation = useMutation({
-    mutationFn: (data: Step2Data) => tenantsApi.submitGymProfile(tenant!.id, {
-      gymName: data.name,
-      gymDescription: data.description,
-      genderType: data.genderType,
-      address: data.address,
-    }),
+    mutationFn: async (data: Step2Data) => {
+      await tenantsApi.submitGymProfile(tenant!.id, {
+        gymName: data.name,
+        gymDescription: data.description,
+        genderType: data.genderType,
+        address: data.address,
+      })
+      if (kycFiles.length > 0) {
+        try {
+          await tenantsApi.uploadKycDocuments(tenant!.id, kycFiles)
+        } catch (uploadErr) {
+          console.warn('KYC documents upload warning:', uploadErr)
+          // Profile is saved; tenant can also upload later from dashboard
+        }
+      }
+    },
     onSuccess: () => setCurrentStep(3),
     onError: (err: unknown) => {
       const error = err as { response?: { data?: { message?: string } } }
@@ -311,9 +322,57 @@ export default function OnboardingPage() {
                   </div>
                 </div>
 
-                <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground mb-1">Documents & Media</p>
-                  <p>Logo, cover image, and KYC documents can be uploaded after account approval from the CMS portal.</p>
+                <div className="border border-border/70 rounded-xl p-5 bg-card/50 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-semibold text-sm text-foreground">KYC Verification Documents (Optional)</p>
+                      <p className="text-xs text-muted-foreground">
+                        Upload gym registration certificate, CNIC, or utility bill for faster account approval. Documents are stored in secure private storage with AES-256 encryption.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors rounded-lg p-4 text-center cursor-pointer relative bg-muted/10">
+                    <input
+                      type="file"
+                      multiple
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      onChange={(e) => {
+                        if (e.target.files) {
+                          const newFiles = Array.from(e.target.files)
+                          setKycFiles((prev) => [...prev, ...newFiles])
+                        }
+                      }}
+                    />
+                    <div className="flex flex-col items-center gap-1.5 pointer-events-none">
+                      <Upload className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-xs font-medium">Click or drag files here to upload KYC documents</span>
+                      <span className="text-[11px] text-muted-foreground">Supported: PDF, JPG, PNG (Max 10MB each)</span>
+                    </div>
+                  </div>
+
+                  {kycFiles.length > 0 && (
+                    <div className="space-y-2 pt-1">
+                      {kycFiles.map((file, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-xs bg-muted/40 p-2 rounded-md border border-border/40">
+                          <div className="flex items-center gap-2 truncate">
+                            <FileText className="h-4 w-4 text-primary shrink-0" />
+                            <span className="truncate font-medium">{file.name}</span>
+                            <span className="text-muted-foreground text-[10px]">({(file.size / 1024).toFixed(0)} KB)</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setKycFiles((prev) => prev.filter((_, i) => i !== idx))}
+                            className="text-muted-foreground hover:text-destructive p-1"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-between pt-4">

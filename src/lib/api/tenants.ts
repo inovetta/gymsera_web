@@ -83,4 +83,20 @@ export const tenantsApi = {
     const { data } = await apiClient.post(`/tenants/${id}/finalize`, payload)
     return data
   },
+
+  uploadKycDocuments: async (
+    id: string,
+    files: File[],
+    documentType?: string
+  ): Promise<ApiResponse<{ kycDocuments: Array<{ id: string; name: string; size: number }> }>> => {
+    const formData = new FormData()
+    files.forEach((file) => formData.append('documents', file))
+    if (documentType) {
+      formData.append('documentType', documentType)
+    }
+    const { data } = await apiClient.post(`/tenants/${id}/kyc-documents`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  },
 }
