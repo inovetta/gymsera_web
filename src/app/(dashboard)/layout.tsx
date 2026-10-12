@@ -16,6 +16,8 @@ import { meApi } from '@/lib/api/me'
 import { getCmsUrl } from '@/lib/cms'
 import { getInitials } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { SkipLink } from '@/components/layout/skip-link'
+import { OfflineBanner } from '@/components/features/offline-banner'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -223,6 +225,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen bg-muted/30 overflow-hidden">
+      <SkipLink />
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:w-64 lg:flex-col bg-background border-r shrink-0">
         <SidebarContent />
@@ -270,8 +273,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           )}
         </header>
 
+        <OfflineBanner />
+
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto focus:outline-none">
           {children}
         </main>
       </div>

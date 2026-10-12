@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { QRCodeDisplay } from '@/components/features/qr-code-display'
 import { EmptyState } from '@/components/features/empty-state'
+import { ErrorState, statusOf } from '@/components/features/error-state'
 import { meApi } from '@/lib/api/me'
 import { subscriptionsApi } from '@/lib/api/subscriptions'
 import { useToast } from '@/hooks/use-toast'
@@ -48,7 +49,7 @@ export default function SubscriptionDetailPage() {
   const proofInputRef = useRef<HTMLInputElement>(null)
   const [proofFile, setProofFile] = useState<File | null>(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error: loadError, refetch } = useQuery({
     queryKey: ['my-subscription-detail', id],
     queryFn: () => subscriptionsApi.getMySubscriptionDetail(id),
     enabled: !!id,
@@ -92,6 +93,14 @@ export default function SubscriptionDetailPage() {
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-64 rounded-xl" />
         <Skeleton className="h-48 rounded-xl" />
+      </div>
+    )
+  }
+
+  if (loadError && statusOf(loadError) !== 404) {
+    return (
+      <div className="p-6">
+        <ErrorState error={loadError} what="this subscription" onRetry={() => refetch()} />
       </div>
     )
   }

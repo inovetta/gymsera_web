@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SubscriptionCard } from '@/components/features/subscription-card'
 import { EmptyState } from '@/components/features/empty-state'
+import { ErrorState } from '@/components/features/error-state'
 import { meApi } from '@/lib/api/me'
 import { subscriptionsApi } from '@/lib/api/subscriptions'
 import { useToast } from '@/hooks/use-toast'
@@ -26,7 +27,7 @@ export default function SubscriptionsPage() {
   const [freezeFrom, setFreezeFrom] = useState('')
   const [freezeTo, setFreezeTo] = useState('')
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error: loadError, refetch } = useQuery({
     queryKey: ['my-subscriptions', statusFilter],
     queryFn: () => meApi.getSubscriptions({ status: statusFilter || undefined, limit: 50 }),
   })
@@ -87,6 +88,8 @@ export default function SubscriptionsPage() {
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
         </div>
+      ) : loadError ? (
+        <ErrorState error={loadError} what="your subscriptions" onRetry={() => refetch()} />
       ) : subscriptions.length === 0 ? (
         <EmptyState
           icon={CreditCard}

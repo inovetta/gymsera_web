@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/features/empty-state'
+import { ErrorState } from '@/components/features/error-state'
 import { meApi } from '@/lib/api/me'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -36,7 +37,7 @@ export default function PaymentsPage() {
   const [uploadingId, setUploadingId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState('')
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error: loadError, refetch } = useQuery({
     queryKey: ['my-payments', statusFilter],
     queryFn: () => meApi.getPayments({ status: statusFilter || undefined, limit: 50 }),
   })
@@ -98,6 +99,8 @@ export default function PaymentsPage() {
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
         </div>
+      ) : loadError ? (
+        <ErrorState error={loadError} what="your payments" onRetry={() => refetch()} />
       ) : payments.length === 0 ? (
         <EmptyState
           icon={Wallet}

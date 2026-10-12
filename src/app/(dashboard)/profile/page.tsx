@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ErrorState } from '@/components/features/error-state'
 import { meApi } from '@/lib/api/me'
 import { useAuthStore } from '@/stores/auth.store'
 import { useToast } from '@/hooks/use-toast'
@@ -57,7 +58,7 @@ export default function ProfilePage() {
   const [showNewPw, setShowNewPw] = useState(false)
   const [showConfirmPw, setShowConfirmPw] = useState(false)
 
-  const { data: profileData, isLoading } = useQuery({
+  const { data: profileData, isLoading, error: profileError, refetch: refetchProfile } = useQuery({
     queryKey: ['my-profile'],
     queryFn: () => meApi.getProfile(),
   })
@@ -131,6 +132,15 @@ export default function ProfilePage() {
       <div className="p-6 max-w-3xl mx-auto space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-64 rounded-xl" />
+      </div>
+    )
+  }
+
+  // A form over a profile that never loaded would offer to save blanks.
+  if (profileError) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto">
+        <ErrorState error={profileError} what="your profile" onRetry={() => refetchProfile()} />
       </div>
     )
   }
