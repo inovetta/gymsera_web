@@ -18,6 +18,7 @@ export interface User {
   role: UserRole
   status: UserStatus
   isVerified: boolean
+  isHost?: boolean
   profileImageUrl?: string
   lastLoginAt?: string
   createdAt: string

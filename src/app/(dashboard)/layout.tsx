@@ -3,13 +3,17 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import {
-  LayoutDashboard, CreditCard, Wallet, FileText, User, LogOut, Dumbbell, Menu, X, ChevronRight
+  LayoutDashboard, CreditCard, Wallet, FileText, User, LogOut, Dumbbell, Menu, X, ChevronRight, AlertTriangle
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { useAuthStore } from '@/stores/auth.store'
+import { authApi } from '@/lib/api/auth'
+import { meApi } from '@/lib/api/me'
+import { getCmsUrl } from '@/lib/cms'
 import { getInitials } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
@@ -28,13 +32,79 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const logout = useAuthStore((s) => s.logout)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // Auth gate — unauthenticated users go to login
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace(`/auth/login?from=${pathname}`)
     }
   }, [isLoading, isAuthenticated, router, pathname])
 
-  if (isLoading || !isAuthenticated) {
+  // UX-02: Verify role from API directly — do not rely on localStorage alone
+  const {
+    data: meResponse,
+    isLoading: meLoading,
+    isError: meError,
+  } = useQuery({
+    queryKey: ['auth-verified-me'],
+    queryFn: () => authApi.getMe(),
+    enabled: isAuthenticated,
+    retry: false,
+    staleTime: 60 * 1000,
+  })
+
+  // Sync fresh profile into auth store
+  useEffect(() => {
+    if (meResponse?.data) {
+      useAuthStore.getState().setUser(meResponse.data)
+    }
+  }, [meResponse?.data])
+
+  // If server reports unauthorized, clear store and send to login
+  useEffect(() => {
+    if (meError) {
+      logout()
+      router.replace(`/auth/login?from=${pathname}`)
+    }
+  }, [meError, logout, router, pathname])
+
+  const verifiedUser = meResponse?.data
+  const isHost = verifiedUser?.role === 'GYM_HOST' || Boolean(verifiedUser?.isHost)
+
+  // When verified role is host, check if they have any member subscriptions
+  const {
+    data: subsResponse,
+    isLoading: subsLoading,
+  } = useQuery({
+    queryKey: ['auth-verified-subscriptions'],
+    queryFn: () => meApi.getSubscriptions({ limit: 1 }),
+    enabled: isAuthenticated && isHost,
+    retry: false,
+    staleTime: 60 * 1000,
+  })
+
+  const memberships = subsResponse?.data?.memberships || []
+  const hasMemberSubs = memberships.length > 0
+  const isHostOnly = isHost && !hasMemberSubs && !subsLoading
+
+  // Host-only redirect to CMS
+  useEffect(() => {
+    if (isHostOnly && pathname !== '/gymsera-billing') {
+      const cmsUrl = getCmsUrl()
+      if (cmsUrl) {
+        window.location.href = `${cmsUrl}/dashboard`
+      }
+    }
+  }, [isHostOnly, pathname])
+
+  const handleLogout = () => {
+    logout()
+    router.push('/')
+  }
+
+  // Verifying server role and subscriptions
+  const isVerifying = isAuthenticated && (meLoading || (isHost && subsLoading))
+
+  if (isLoading || !isAuthenticated || isVerifying) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -51,10 +121,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     )
   }
 
-  const handleLogout = () => {
-    logout()
-    router.push('/')
+  // Host-only user trying to access member portal routes
+  if (isHostOnly && pathname !== '/gymsera-billing') {
+    const cmsUrl = getCmsUrl()
+    if (!cmsUrl) {
+      return (
+        <div className="flex h-screen items-center justify-center bg-background p-6">
+          <div className="max-w-md w-full p-8 rounded-2xl border bg-card text-center space-y-4 shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <h2 className="text-xl font-bold">Host Portal Unavailable</h2>
+            <p className="text-muted-foreground text-sm">
+              Your account is a gym host, but the GymsEra CMS portal URL is not configured.
+              Please configure NEXT_PUBLIC_CMS_URL or contact support.
+            </p>
+            <div className="pt-2">
+              <Button variant="outline" onClick={handleLogout}>Log out</Button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center animate-pulse">
+            <Dumbbell className="h-6 w-6 text-white" />
+          </div>
+          <p className="text-sm text-muted-foreground">Redirecting to GymsEra CMS…</p>
+        </div>
+      </div>
+    )
   }
+
+  const currentUser = verifiedUser || user
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -93,16 +195,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </nav>
 
       {/* User Profile */}
-      {user && (
+      {currentUser && (
         <div className="p-4 border-t">
           <div className="flex items-center gap-3 mb-3">
             <Avatar className="h-9 w-9">
-              <AvatarImage src={user.profileImageUrl} />
-              <AvatarFallback className="text-xs">{getInitials(user.fullName)}</AvatarFallback>
+              <AvatarImage src={currentUser.profileImageUrl} />
+              <AvatarFallback className="text-xs">{getInitials(currentUser.fullName)}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{user.fullName}</p>
-              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              <p className="font-medium text-sm truncate">{currentUser.fullName}</p>
+              <p className="text-xs text-muted-foreground truncate">{currentUser.email}</p>
             </div>
           </div>
           <Button
@@ -158,11 +260,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <span className="font-bold">Gyms<span className="text-primary">Era</span></span>
           </Link>
-          {user && (
+          {currentUser && (
             <div className="ml-auto">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user.profileImageUrl} />
-                <AvatarFallback className="text-xs">{getInitials(user.fullName)}</AvatarFallback>
+                <AvatarImage src={currentUser.profileImageUrl} />
+                <AvatarFallback className="text-xs">{getInitials(currentUser.fullName)}</AvatarFallback>
               </Avatar>
             </div>
           )}
