@@ -13,6 +13,8 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }), toas
 const mockTenants = vi.hoisted(() => ({
   registerTenant: vi.fn(),
   submitGymProfile: vi.fn(),
+  uploadOnboardingImages: vi.fn(),
+  replaceOnboardingImages: vi.fn(),
   selectPackage: vi.fn(),
   finalizeApplication: vi.fn(),
 }))
@@ -79,7 +81,9 @@ const renderWizard = () =>
     </QueryClientProvider>
   )
 
-// Walks business -> gym profile -> plans step.
+const photoFile = (n: number) => new File(['x'], `p${n}.jpg`, { type: 'image/jpeg' })
+
+// Walks business -> gym details -> location -> photos (5) -> plans step.
 async function toPlansStep() {
   await user.type(screen.getByPlaceholderText('e.g. Fitness Plus Pvt Ltd'), 'Iron Paradise Ltd')
   await user.type(screen.getByPlaceholderText('info@yourcompany.com'), 'owner@example.com')
@@ -93,8 +97,14 @@ async function toPlansStep() {
     'A full service gym with strength and cardio floors.'
   )
   await user.click(screen.getByRole('button', { name: 'Mixed (Men & Women)' }))
-  await user.click(screen.getByRole('button', { name: 'pin location' }))
-  await user.click(screen.getByRole('button', { name: /Continue to Plans/ }))
+  await user.click(screen.getByRole('button', { name: /Continue to Location/ }))
+  await user.click(await screen.findByRole('button', { name: 'pin location' }))
+  await user.click(screen.getByRole('button', { name: /Continue to Photos/ }))
+  const files = [1, 2, 3, 4, 5].map(photoFile)
+  fireEvent.change(await screen.findByTestId('photo-input'), { target: { files } })
+  const cont = await screen.findByRole('button', { name: /Continue to Plans/ })
+  await waitFor(() => expect(cont).not.toBeDisabled())
+  await user.click(cont)
   await screen.findByText('Membership Plans')
 }
 
@@ -103,6 +113,9 @@ describe('web signup: membership plans step', () => {
     vi.clearAllMocks()
     mockTenants.registerTenant.mockResolvedValue({ data: { tenant: { id: 't1', cityId: 1 } } })
     mockTenants.submitGymProfile.mockResolvedValue({ data: { tenant: { id: 't1' } } })
+    mockTenants.uploadOnboardingImages.mockResolvedValue({
+      data: { imagesJson: [1, 2, 3, 4, 5].map((n) => `https://cdn.test/${n}.jpg`) },
+    })
   })
 
   it('blocks Continue at 0 plans and sends nothing', async () => {

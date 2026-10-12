@@ -12,7 +12,7 @@ import {
   CheckCircle, Dumbbell, Building2, Package, CreditCard, Eye, EyeOff,
   ChevronRight, ArrowLeft, Star, Shield, Clock, AlertCircle, Copy,
   Loader2, Mail, Phone, User, Lock, RefreshCw, ExternalLink,
-  FileText, Check, LogIn,
+  FileText, Check, LogIn, MapPin, ImagePlus, ListChecks,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,6 +29,7 @@ import { tenantsApi } from '@/lib/api/tenants'
 import { packagesApi } from '@/lib/api/packages'
 import { billingPlansApi } from '@/lib/api/billing-plans'
 import { RegisterPlansStep, PlanDraft, draftsToApiPlans } from '@/components/features/register-plans-step'
+import { RegisterPhotosStep } from '@/components/features/register-photos-step'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
@@ -73,15 +74,32 @@ type GymProfileData = z.infer<typeof gymProfileSchema>
 
 // ── Step Config ───────────────────────────────────────────────────────────────
 
+// The numbered `step` values (0 account, 1 verify, 2 business, 3 gym, 4 package,
+// 5 payment, 6 done) are what ?step= links and initialStep use, so they stay
+// put. Step 3 is the gym section and has four phases in mobile's order; the
+// sidebar lists each phase as its own item.
+type GymPhase = 'details' | 'location' | 'photos' | 'plans'
+const GYM_PHASES: GymPhase[] = ['details', 'location', 'photos', 'plans']
+
 const STEPS = [
   { id: 'account', label: 'Account', icon: User, description: 'Create your login' },
   { id: 'verify', label: 'Verify', icon: Mail, description: 'Confirm your email' },
   { id: 'business', label: 'Business', icon: Building2, description: 'Your business info' },
-  { id: 'gym', label: 'Gym Profile', icon: Dumbbell, description: 'Gym details' },
+  { id: 'details', label: 'Gym Details', icon: Dumbbell, description: 'Name and description' },
+  { id: 'location', label: 'Location & Branch', icon: MapPin, description: 'Where members find you' },
+  { id: 'photos', label: 'Photos', icon: ImagePlus, description: '5 to 10 photos' },
+  { id: 'plans', label: 'Plans', icon: ListChecks, description: 'Membership plans' },
   { id: 'package', label: 'Package', icon: Package, description: 'Choose your plan' },
   { id: 'payment', label: 'Payment', icon: CreditCard, description: 'Billing & review' },
   { id: 'done', label: 'Done', icon: CheckCircle, description: 'Application submitted' },
 ]
+
+/** Position of the current screen in STEPS. */
+function screenIndex(step: number, phase: GymPhase) {
+  if (step < 3) return step
+  if (step === 3) return 3 + GYM_PHASES.indexOf(phase)
+  return step + GYM_PHASES.length - 1
+}
 
 // ── OTP Input ─────────────────────────────────────────────────────────────────
 
@@ -195,10 +213,13 @@ export function GymOwnerRegister({
   const [branchOpeningTime, setBranchOpeningTime] = useState('')
   const [branchClosingTime, setBranchClosingTime] = useState('')
 
-  // Step 3 has two phases so the numbered steps stay put: the profile form,
-  // then the membership plans. Nothing is sent until the plans are added —
-  // the backend refuses to finalize an application with no plans.
-  const [gymPhase, setGymPhase] = useState<'profile' | 'plans'>('profile')
+  // Step 3 has four phases so the numbered steps stay put: details, location
+  // and branch, photos, then plans. Photos are uploaded as they are added
+  // (they only need the tenant); the gym profile itself is sent once, with the
+  // plans — the backend refuses to finalize an application with no plans.
+  const [gymPhase, setGymPhase] = useState<GymPhase>('details')
+  const [photos, setPhotos] = useState<string[]>([])
+  const [locationAttempted, setLocationAttempted] = useState(false)
   const [gymProfileDraft, setGymProfileDraft] = useState<GymProfileData | null>(null)
   const [plans, setPlans] = useState<PlanDraft[]>([])
 
@@ -383,7 +404,9 @@ export function GymOwnerRegister({
       })
       // A rejected profile field is fixed on the profile form, not here.
       if (fieldErrors.some(({ field }) => ['name', 'description', 'genderType'].includes(field))) {
-        setGymPhase('profile')
+        setGymPhase('details')
+      } else if (fieldErrors.length > 0) {
+        setGymPhase('location')
       }
     },
   })
@@ -434,7 +457,7 @@ export function GymOwnerRegister({
 
   // Visible step index in sidebar (skip "verify" for already-logged-in users)
   const visibleSteps = isAuthenticated ? STEPS.filter((s) => s.id !== 'account' && s.id !== 'verify') : STEPS
-  const sidebarStep = isAuthenticated ? Math.max(0, step - 2) : step
+  const sidebarStep = isAuthenticated ? Math.max(0, screenIndex(step, gymPhase) - 2) : screenIndex(step, gymPhase)
 
   if (authLoading) {
     return (
@@ -841,13 +864,13 @@ export function GymOwnerRegister({
               </div>
             )}
 
-            {/* ── Step 3: Gym Profile ── */}
+            {/* ── Step 3: Gym section — details → location & branch → photos → plans ── */}
             {step === 3 && gymPhase === 'plans' && (
               <RegisterPlansStep
                 plans={plans}
                 onChange={setPlans}
                 loading={gymProfileMutation.isPending}
-                onBack={() => { setError(''); setGymPhase('profile') }}
+                onBack={() => { setError(''); setGymPhase('photos') }}
                 onContinue={() => {
                   if (plans.length === 0) {
                     setError('Add at least one membership plan to continue.')
@@ -859,10 +882,20 @@ export function GymOwnerRegister({
               />
             )}
 
-            {step === 3 && gymPhase === 'profile' && (
+            {step === 3 && gymPhase === 'photos' && (
+              <RegisterPhotosStep
+                tenantId={tenant?.id ?? ''}
+                photos={photos}
+                onChange={(next) => { setError(''); setPhotos(next) }}
+                onBack={() => { setError(''); setGymPhase('location') }}
+                onContinue={() => { setError(''); setGymPhase('plans') }}
+              />
+            )}
+
+            {step === 3 && gymPhase === 'details' && (
               <div className="space-y-6">
                 <div>
-                  <h1 className="text-2xl font-bold mb-1">Gym Profile</h1>
+                  <h1 className="text-2xl font-bold mb-1">Gym Details</h1>
                   <p className="text-muted-foreground text-sm">
                     This is how your gym will appear on GymsEra. You can update details anytime from your dashboard.
                   </p>
@@ -870,13 +903,9 @@ export function GymOwnerRegister({
 
                 <form
                   onSubmit={gymForm.handleSubmit((data) => {
-                    if (!gymAddress) {
-                      setError('Please pin your gym location on the map.')
-                      return
-                    }
                     setError('')
                     setGymProfileDraft(data)
-                    setGymPhase('plans')
+                    setGymPhase('location')
                   })}
                   className="space-y-5"
                 >
@@ -904,7 +933,10 @@ export function GymOwnerRegister({
 
                   <div>
                     <Label className="mb-2 block">Gender Policy</Label>
-                    <Select onValueChange={(v) => gymForm.setValue('genderType', v)}>
+                    <Select
+                      value={gymForm.watch('genderType') || undefined}
+                      onValueChange={(v) => gymForm.setValue('genderType', v, { shouldValidate: true })}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select policy" />
                       </SelectTrigger>
@@ -919,6 +951,28 @@ export function GymOwnerRegister({
                     )}
                   </div>
 
+                  <div className="flex justify-between pt-2">
+                    <Button variant="outline" type="button" onClick={() => setStep(2)}>
+                      <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                    </Button>
+                    <Button type="submit" size="lg">
+                      Continue to Location <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {step === 3 && gymPhase === 'location' && (
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-bold mb-1">Location & Branch</h1>
+                  <p className="text-muted-foreground text-sm">
+                    Pin your gym on the map and tell us about your branch.
+                  </p>
+                </div>
+
+                <div className="space-y-5">
                   {/* Location Picker */}
                   <div>
                     <Label className="mb-2 block">Gym Location</Label>
@@ -931,7 +985,7 @@ export function GymOwnerRegister({
                       placeholder="Search for your gym address…"
                       mapId="gym-location-picker"
                     />
-                    {!gymAddress && gymForm.formState.isSubmitted && (
+                    {!gymAddress && locationAttempted && (
                       <p className="text-xs text-destructive mt-1">Please pin your gym location on the map</p>
                     )}
                   </div>
@@ -1045,14 +1099,26 @@ export function GymOwnerRegister({
                   </div>
 
                   <div className="flex justify-between pt-2">
-                    <Button variant="outline" type="button" onClick={() => setStep(2)}>
+                    <Button variant="outline" type="button" onClick={() => { setError(''); setGymPhase('details') }}>
                       <ArrowLeft className="h-4 w-4 mr-1" /> Back
                     </Button>
-                    <Button type="submit" size="lg">
-                      Continue to Plans <ChevronRight className="h-4 w-4 ml-1" />
+                    <Button
+                      type="button"
+                      size="lg"
+                      onClick={() => {
+                        if (!gymAddress) {
+                          setLocationAttempted(true)
+                          setError('Please pin your gym location on the map.')
+                          return
+                        }
+                        setError('')
+                        setGymPhase('photos')
+                      }}
+                    >
+                      Continue to Photos <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
-                </form>
+                </div>
               </div>
             )}
 
@@ -1137,7 +1203,7 @@ export function GymOwnerRegister({
                 )}
 
                 <div className="flex justify-between pt-2">
-                  <Button variant="outline" onClick={() => setStep(3)}>
+                  <Button variant="outline" onClick={() => { setGymPhase('plans'); setStep(3) }}>
                     <ArrowLeft className="h-4 w-4 mr-1" /> Back
                   </Button>
                   <Button
