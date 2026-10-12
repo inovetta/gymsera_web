@@ -1,5 +1,6 @@
 import apiClient from './client'
 import { ApiResponse, Tenant } from '@/types'
+import type { FormattedPlan } from '@/lib/format-plans'
 
 export interface RegisterTenantPayload {
   businessName: string
@@ -17,6 +18,7 @@ export interface MainBranchData {
   openingTime?: string | null
   closingTime?: string | null
   cityId?: number | null
+  plans?: FormattedPlan[]
 }
 
 export interface GymProfilePayload {
