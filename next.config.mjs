@@ -8,6 +8,7 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      { source: '/onboarding', destination: '/gym-owner/register', permanent: true },
       { source: '/privacy-policy', destination: '/privacy', permanent: true },
       { source: '/terms-and-conditions', destination: '/terms', permanent: true },
       { source: '/terms-of-service', destination: '/terms', permanent: true },

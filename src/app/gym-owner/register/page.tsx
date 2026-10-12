@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -32,8 +32,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
 import { Tenant, PlatformPackage } from '@/types'
-import { formatCurrency } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { formatCurrency, cn, extractValidationErrorMessage, extractFieldErrors } from '@/lib/utils'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -82,13 +81,6 @@ const STEPS = [
   { id: 'payment', label: 'Payment', icon: CreditCard, description: 'Billing & review' },
   { id: 'done', label: 'Done', icon: CheckCircle, description: 'Application submitted' },
 ]
-
-const BANK_DETAILS = {
-  bankName: 'Meezan Bank',
-  accountTitle: 'GymsEra Technologies Pvt Ltd',
-  accountNumber: '0247-0105817703',
-  iban: 'PK61MEZN0002470105817703',
-}
 
 // ── OTP Input ─────────────────────────────────────────────────────────────────
 
@@ -154,13 +146,21 @@ const FEATURES = [
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-export default function GymOwnerRegisterPage() {
+export default function GymOwnerRegisterPage({
+  initialStep,
+  initialPackage,
+}: {
+  initialStep?: number
+  initialPackage?: PlatformPackage | null
+} = {}) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const stepParam = searchParams?.get('step') ? Number(searchParams.get('step')) : null
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const setAuth = useAuthStore((s) => s.setAuth)
   const { toast } = useToast()
 
-  const [step, setStep] = useState(0) // 0=account, 1=verify, 2=business, 3=gym, 4=package, 5=payment, 6=done
+  const [step, setStep] = useState(initialStep ?? (stepParam !== null && !isNaN(stepParam) ? stepParam : 0)) // 0=account, 1=verify, 2=business, 3=gym, 4=package, 5=payment, 6=done
   const [loginMode, setLoginMode] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -169,7 +169,7 @@ export default function GymOwnerRegisterPage() {
   const [otpCountdown, setOtpCountdown] = useState(300)
   const [error, setError] = useState('')
   const [tenant, setTenant] = useState<Tenant | null>(null)
-  const [selectedPackage, setSelectedPackage] = useState<PlatformPackage | null>(null)
+  const [selectedPackage, setSelectedPackage] = useState<PlatformPackage | null>(initialPackage ?? null)
   const [paymentMethod, setPaymentMethod] = useState<'bank' | 'later' | 'card'>('bank')
   const [bankRef, setBankRef] = useState('')
   const [copiedField, setCopiedField] = useState<string | null>(null)
@@ -194,10 +194,10 @@ export default function GymOwnerRegisterPage() {
 
   // Skip auth steps if already logged in
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    if (!authLoading && isAuthenticated && step < 2) {
       setStep(2)
     }
-  }, [authLoading, isAuthenticated])
+  }, [authLoading, isAuthenticated, step])
 
   // OTP countdown
   useEffect(() => {
@@ -228,6 +228,13 @@ export default function GymOwnerRegisterPage() {
     enabled: isAuthenticated,
   })
 
+  // UX-15: public bank transfer instructions from environment config
+  const { data: bankInstructionsData } = useQuery({
+    queryKey: ['billing-bank-instructions'],
+    queryFn: () => billingPlansApi.getBankInstructions(),
+  })
+
+  const bankInstructions = bankInstructionsData?.data
   const cities = citiesData?.data?.cities || []
   const packages = packagesData?.data?.filter((p) => p.status === 'ACTIVE') || []
   const billingPlans = billingPlansData?.data?.plans || []
@@ -255,7 +262,13 @@ export default function GymOwnerRegisterPage() {
       setStep(1)
       setError('')
     },
-    onError: (err: any) => setError(err?.response?.data?.message || 'Registration failed. Please try again.'),
+    onError: (err: any) => {
+      const msg = extractValidationErrorMessage(err, 'Registration failed. Please try again.')
+      setError(msg)
+      extractFieldErrors(err).forEach(({ field, message }) => {
+        accountForm.setError(field as any, { type: 'server', message })
+      })
+    },
   })
 
   const loginMutation = useMutation({
@@ -266,7 +279,13 @@ export default function GymOwnerRegisterPage() {
       setStep(2)
       setError('')
     },
-    onError: (err: any) => setError(err?.response?.data?.message || 'Login failed. Check your credentials.'),
+    onError: (err: any) => {
+      const msg = extractValidationErrorMessage(err, 'Login failed. Check your credentials.')
+      setError(msg)
+      extractFieldErrors(err).forEach(({ field, message }) => {
+        loginForm.setError(field as any, { type: 'server', message })
+      })
+    },
   })
 
   const verifyMutation = useMutation({
@@ -277,7 +296,7 @@ export default function GymOwnerRegisterPage() {
       setStep(2)
       setError('')
     },
-    onError: (err: any) => setError(err?.response?.data?.message || 'Invalid OTP. Please try again.'),
+    onError: (err: any) => setError(extractValidationErrorMessage(err, 'Invalid OTP. Please try again.')),
   })
 
   const resendMutation = useMutation({
@@ -311,7 +330,13 @@ export default function GymOwnerRegisterPage() {
       setStep(3)
       setError('')
     },
-    onError: (err: any) => setError(err?.response?.data?.message || 'Failed to register business.'),
+    onError: (err: any) => {
+      const msg = extractValidationErrorMessage(err, 'Failed to register business.')
+      setError(msg)
+      extractFieldErrors(err).forEach(({ field, message }) => {
+        businessForm.setError(field as any, { type: 'server', message })
+      })
+    },
   })
 
   const gymProfileMutation = useMutation({
@@ -334,13 +359,19 @@ export default function GymOwnerRegisterPage() {
       },
     }),
     onSuccess: () => { setStep(4); setError('') },
-    onError: (err: any) => setError(err?.response?.data?.message || 'Failed to save gym profile.'),
+    onError: (err: any) => {
+      const msg = extractValidationErrorMessage(err, 'Failed to save gym profile.')
+      setError(msg)
+      extractFieldErrors(err).forEach(({ field, message }) => {
+        gymForm.setError(field as any, { type: 'server', message })
+      })
+    },
   })
 
   const selectPackageMutation = useMutation({
     mutationFn: (pkgId: string) => tenantsApi.selectPackage(tenant!.id, { packageId: pkgId }),
     onSuccess: () => { setStep(5); setError('') },
-    onError: (err: any) => setError(err?.response?.data?.message || 'Failed to select package.'),
+    onError: (err: any) => setError(extractValidationErrorMessage(err, 'Failed to select package.')),
   })
 
   const finalizeMutation = useMutation({
@@ -349,7 +380,7 @@ export default function GymOwnerRegisterPage() {
       bankTransferRef: bankRef || undefined,
     }),
     onSuccess: () => { setStep(6); setError('') },
-    onError: (err: any) => setError(err?.response?.data?.message || 'Failed to submit application.'),
+    onError: (err: any) => setError(extractValidationErrorMessage(err, 'Failed to submit application.')),
   })
 
   // Card payment bypasses admin review entirely — GymsEra's own catalog +
@@ -370,7 +401,7 @@ export default function GymOwnerRegisterPage() {
       cancelUrl: `${window.location.origin}/gymsera-billing?checkout=cancelled`,
     }),
     onSuccess: (res) => { window.location.href = res.data.url },
-    onError: (err: any) => setError(err?.response?.data?.message || 'Failed to start checkout.'),
+    onError: (err: any) => setError(extractValidationErrorMessage(err, 'Failed to start checkout.')),
   })
 
   const copyToClipboard = (text: string, field: string) => {
@@ -1152,23 +1183,42 @@ export default function GymOwnerRegisterPage() {
                       {/* Bank details — shown when selected */}
                       {paymentMethod === 'bank' && (
                         <div className="mt-3 bg-muted rounded-xl p-4 space-y-2.5 text-sm">
-                          {Object.entries(BANK_DETAILS).map(([key, val]) => (
-                            <div key={key} className="flex items-center justify-between gap-2">
-                              <span className="text-muted-foreground capitalize min-w-[100px]">
-                                {key.replace(/([A-Z])/g, ' $1').trim()}
-                              </span>
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-medium">{val}</span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); copyToClipboard(val, key) }}
-                                  className="text-muted-foreground hover:text-primary transition-colors"
-                                >
-                                  {copiedField === key ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                          {bankInstructions && (bankInstructions.bankName || bankInstructions.accountNumber || bankInstructions.iban) ? (
+                            <>
+                              {[
+                                { key: 'bankName', label: 'Bank Name', val: bankInstructions.bankName },
+                                { key: 'accountTitle', label: 'Account Title', val: bankInstructions.accountTitle },
+                                { key: 'accountNumber', label: 'Account Number', val: bankInstructions.accountNumber },
+                                { key: 'iban', label: 'IBAN', val: bankInstructions.iban },
+                                { key: 'swiftCode', label: 'Swift Code', val: bankInstructions.swiftCode },
+                              ]
+                                .filter((item) => Boolean(item.val))
+                                .map(({ key, label, val }) => (
+                                  <div key={key} className="flex items-center justify-between gap-2">
+                                    <span className="text-muted-foreground min-w-[100px]">{label}</span>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-medium">{val}</span>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); copyToClipboard(val!, key) }}
+                                        className="text-muted-foreground hover:text-primary transition-colors"
+                                      >
+                                        {copiedField === key ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              {bankInstructions.instructions && (
+                                <p className="text-xs text-muted-foreground pt-1 border-t border-border/50">
+                                  {bankInstructions.instructions}
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-xs text-muted-foreground py-1">
+                              Bank details will be shared after your application is reviewed
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1186,7 +1236,7 @@ export default function GymOwnerRegisterPage() {
                         </div>
                         <div>
                           <p className="font-medium text-sm">Pay After Approval</p>
-                          <p className="text-xs text-muted-foreground">Submit your application now. Our team will contact you for payment once approved.</p>
+                          <p className="text-xs text-muted-foreground">Your plan starts after approval. Pay within 14 days to keep access.</p>
                         </div>
                       </div>
                     </div>

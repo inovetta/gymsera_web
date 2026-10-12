@@ -223,6 +223,24 @@ export function resolveApiError(error: unknown, locale: 'en' | 'ur' | 'ar' = 'en
     'An unexpected error occurred.'
 
   if (code && ERROR_COPY_FALLBACK[code]) {
+    if (code === 'validation_error') {
+      const fieldMsg =
+        (data?.errors && data.errors.length > 0
+          ? data.errors.map((e) => e.message || e.field).filter(Boolean).join('. ')
+          : null) ||
+        (Array.isArray((data?.error?.details as any)?.errors)
+          ? (data!.error!.details as any).errors.map((e: any) => e.message || e.field).filter(Boolean).join('. ')
+          : null)
+      if (fieldMsg) {
+        return {
+          code,
+          message: fieldMsg,
+          action: 'retry',
+          requestId,
+        }
+      }
+    }
+
     const entry = ERROR_COPY_FALLBACK[code]
     return {
       code,

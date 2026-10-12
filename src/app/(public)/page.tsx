@@ -290,7 +290,7 @@ export default function HomePage() {
                     List Your Gym <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link href="/onboarding">
+                <Link href="/gym-owner/register">
                   <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10">
                     Start Onboarding
                   </Button>

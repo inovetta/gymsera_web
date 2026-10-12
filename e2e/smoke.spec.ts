@@ -19,4 +19,10 @@ test.describe('Web smoke suite', () => {
     const submitBtn = page.locator('button[type="submit"]');
     await expect(submitBtn).toBeVisible();
   });
+
+  test('navigating to /onboarding redirects to /gym-owner/register', async ({ page }) => {
+    await page.goto('/onboarding');
+    await expect(page).toHaveURL(/.*\/gym-owner\/register/);
+    await expect(page.locator('h1, h2')).toContainText(['Create your account']);
+  });
 });

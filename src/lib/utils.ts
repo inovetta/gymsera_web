@@ -82,3 +82,104 @@ export function formatRating(rating: number) {
 export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
+
+/**
+ * Extracts human-readable field-level validation error messages from API responses (422),
+ * such as error.details.errors, data.errors, or error.details.
+ * Returns field-level copy (e.g. "A valid phone number is required") instead of generic "Validation failed".
+ */
+export function extractValidationErrorMessage(error: unknown, defaultMessage = 'Validation failed'): string {
+  const err = error as {
+    response?: {
+      data?: {
+        message?: string
+        code?: string
+        error?: {
+          code?: string
+          message?: string
+          details?: {
+            errors?: Array<{ field?: string; message?: string }>
+            [key: string]: unknown
+          } | unknown
+        }
+        details?: {
+          errors?: Array<{ field?: string; message?: string }>
+          [key: string]: unknown
+        } | unknown
+        errors?: Array<{ field?: string; message?: string }>
+      }
+    }
+    message?: string
+  }
+
+  const data = err?.response?.data
+  if (!data) {
+    return err?.message || defaultMessage
+  }
+
+  // 1. Direct array of field errors
+  const errorsList: Array<{ field?: string; message?: string } | string> =
+    (Array.isArray(data.errors) && data.errors) ||
+    (Array.isArray(data.error?.details?.errors) && data.error.details.errors) ||
+    (Array.isArray(data.details?.errors) && data.details.errors) ||
+    (Array.isArray(data.error?.details) && data.error.details) ||
+    (Array.isArray(data.details) && data.details) ||
+    []
+
+  if (errorsList.length > 0) {
+    const messages = errorsList
+      .map((e) => (typeof e === 'string' ? e : e?.message || (e?.field ? `${e.field} is invalid` : null)))
+      .filter(Boolean) as string[]
+    if (messages.length > 0) {
+      return messages.join('. ')
+    }
+  }
+
+  // 2. Object map of field errors (e.g. { phone: "A valid phone number is required" })
+  const detailsObj =
+    (typeof data.error?.details === 'object' && !Array.isArray(data.error?.details) ? data.error?.details : null) ||
+    (typeof data.details === 'object' && !Array.isArray(data.details) ? data.details : null)
+
+  if (detailsObj) {
+    const stringValues = Object.entries(detailsObj)
+      .filter(([k, v]) => typeof v === 'string' && k !== 'errors')
+      .map(([_, v]) => v as string)
+    if (stringValues.length > 0) {
+      return stringValues.join('. ')
+    }
+  }
+
+  // 3. Fallback message (if message is not just the generic "Validation failed")
+  if (data.message && data.message !== 'Validation failed') {
+    return data.message
+  }
+  if (data.error?.message && data.error.message !== 'Validation failed') {
+    return data.error.message
+  }
+
+  return defaultMessage
+}
+
+/**
+ * Extracts field-level error mappings [{ field, message }] to attach to React Hook Form setError.
+ */
+export function extractFieldErrors(error: unknown): Array<{ field: string; message: string }> {
+  const err = error as any
+  const data = err?.response?.data
+  if (!data) return []
+
+  const errorsList =
+    (Array.isArray(data.errors) && data.errors) ||
+    (Array.isArray(data.error?.details?.errors) && data.error.details.errors) ||
+    (Array.isArray(data.details?.errors) && data.details.errors) ||
+    []
+
+  const result: Array<{ field: string; message: string }> = []
+  for (const e of errorsList) {
+    if (e && typeof e === 'object' && e.field && e.message) {
+      result.push({ field: String(e.field), message: String(e.message) })
+    }
+  }
+  return result
+}
+

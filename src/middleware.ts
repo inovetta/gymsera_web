@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const PROTECTED_ROUTES = ['/dashboard', '/profile', '/subscriptions', '/payments', '/account-statement', '/onboarding']
+const PROTECTED_ROUTES = ['/dashboard', '/profile', '/subscriptions', '/payments', '/account-statement']
 const AUTH_ROUTES = ['/auth/login', '/auth/register', '/auth/verify', '/auth/forgot-password']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // UX-01: /onboarding deleted — redirect permanently to /gym-owner/register
+  if (pathname === '/onboarding' || pathname.startsWith('/onboarding/')) {
+    return NextResponse.redirect(new URL('/gym-owner/register', request.url), 301)
+  }
+
   const session = request.cookies.get('gymsera_session')?.value
 
   const isProtected = PROTECTED_ROUTES.some((r) => pathname.startsWith(r))

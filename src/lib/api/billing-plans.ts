@@ -25,6 +25,18 @@ export interface CheckoutSessionStatus {
   entitled: boolean
 }
 
+// GET /billing/bank-instructions — public platform bank transfer instructions
+// served from backend environment configuration (UX-15).
+export interface BankTransferInstructions {
+  bankName: string | null
+  accountTitle: string | null
+  accountNumber: string | null
+  iban: string | null
+  swiftCode: string | null
+  currency: string
+  instructions: string | null
+}
+
 // The one central GymsEra plan catalog — the same BillingPlan rows iOS,
 // Android, and the in-app Host Area all read via GET /billing/plans. The
 // website never hardcodes a branch tier's price or Stripe Price ID; it
@@ -32,6 +44,13 @@ export interface CheckoutSessionStatus {
 export const billingPlansApi = {
   getPlans: async (): Promise<ApiResponse<{ plans: BillingPlan[] }>> => {
     const { data } = await apiClient.get('/billing/plans', { params: { platform: 'web' } })
+    return data
+  },
+
+  getBankInstructions: async (currency?: string): Promise<ApiResponse<BankTransferInstructions>> => {
+    const { data } = await apiClient.get('/billing/bank-instructions', {
+      params: currency ? { currency } : undefined,
+    })
     return data
   },
 
