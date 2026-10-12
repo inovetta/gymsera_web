@@ -58,6 +58,7 @@ vi.mock('@/hooks/use-auth', () => ({
   }),
 }))
 
+import { GymOwnerRegister } from '@/components/features/gym-owner-register'
 import GymOwnerRegisterPage from '@/app/gym-owner/register/page'
 
 const dummyPackage = {
@@ -74,7 +75,7 @@ const renderComponent = (initialStep = 5) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <GymOwnerRegisterPage initialStep={initialStep} initialPackage={dummyPackage as any} />
+      <GymOwnerRegister initialStep={initialStep} initialPackage={dummyPackage as any} />
     </QueryClientProvider>
   )
 }
@@ -126,5 +127,15 @@ describe('UX-07 & UX-15 on Gym Owner Register', () => {
     expect(screen.getByText('PK00SCBL987654321')).toBeInTheDocument()
     expect(screen.getByText('Include your gym name in reference.')).toBeInTheDocument()
     expect(screen.queryByText(/Meezan Bank/i)).not.toBeInTheDocument()
+  })
+
+  it('GymOwnerRegisterPage default export renders GymOwnerRegister with no props', () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <GymOwnerRegisterPage />
+      </QueryClientProvider>
+    )
+    expect(container).toBeInTheDocument()
   })
 })

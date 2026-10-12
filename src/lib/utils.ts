@@ -89,29 +89,7 @@ export function sleep(ms: number) {
  * Returns field-level copy (e.g. "A valid phone number is required") instead of generic "Validation failed".
  */
 export function extractValidationErrorMessage(error: unknown, defaultMessage = 'Validation failed'): string {
-  const err = error as {
-    response?: {
-      data?: {
-        message?: string
-        code?: string
-        error?: {
-          code?: string
-          message?: string
-          details?: {
-            errors?: Array<{ field?: string; message?: string }>
-            [key: string]: unknown
-          } | unknown
-        }
-        details?: {
-          errors?: Array<{ field?: string; message?: string }>
-          [key: string]: unknown
-        } | unknown
-        errors?: Array<{ field?: string; message?: string }>
-      }
-    }
-    message?: string
-  }
-
+  const err = error as any
   const data = err?.response?.data
   if (!data) {
     return err?.message || defaultMessage
