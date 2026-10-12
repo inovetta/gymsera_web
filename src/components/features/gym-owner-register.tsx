@@ -255,6 +255,10 @@ export function GymOwnerRegister({
     ? billingPlans.find((p) => p.branchCount === selectedPackage.maxBranches) || null
     : null
 
+  // Card (Stripe) signup is off until a web payment provider is live (R-7).
+  // Read per render, not at module load, so the flag is a plain build-time env.
+  const cardPaymentsEnabled = process.env.NEXT_PUBLIC_WEB_CARD_PAYMENTS_ENABLED === 'true'
+
   // ── Forms ──────────────────────────────────────────────────────────────────
 
   const accountForm = useForm<AccountData>({ resolver: zodResolver(accountSchema) })
@@ -1275,7 +1279,7 @@ export function GymOwnerRegister({
                       </div>
                     </div>
 
-                    {matchedBillingPlan && (
+                    {cardPaymentsEnabled && matchedBillingPlan && (
                       <div
                         onClick={() => setPaymentMethod('card')}
                         className={cn(

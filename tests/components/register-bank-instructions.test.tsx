@@ -1,6 +1,6 @@
 import React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const mockPush = vi.fn()
@@ -137,5 +137,31 @@ describe('UX-07 & UX-15 on Gym Owner Register', () => {
       </QueryClientProvider>
     )
     expect(container).toBeInTheDocument()
+  })
+})
+
+describe('card payment option is behind NEXT_PUBLIC_WEB_CARD_PAYMENTS_ENABLED', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockBillingPlansApi.getBankInstructions.mockResolvedValue({ data: {} })
+    mockBillingPlansApi.getPlans.mockResolvedValue({
+      data: { plans: [{ id: 'bp-1', branchCount: 1, monthlyPrice: 2000, annualPrice: 14400, currency: 'PKR' }] },
+    })
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('hides Pay with Card by default even when a matching billing plan exists', async () => {
+    renderComponent()
+    await screen.findByText('Your plan starts after approval. Pay within 14 days to keep access.')
+    await waitFor(() => expect(mockBillingPlansApi.getPlans).toHaveBeenCalled())
+    expect(screen.queryByText('Pay with Card')).not.toBeInTheDocument()
+  })
+
+  it('shows Pay with Card when the flag is true', async () => {
+    vi.stubEnv('NEXT_PUBLIC_WEB_CARD_PAYMENTS_ENABLED', 'true')
+    renderComponent()
+    expect(await screen.findByText('Pay with Card')).toBeInTheDocument()
   })
 })
