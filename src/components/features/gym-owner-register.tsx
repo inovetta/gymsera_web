@@ -194,6 +194,9 @@ export function GymOwnerRegister({
   const [paymentMethod, setPaymentMethod] = useState<'bank' | 'later' | 'card'>('bank')
   const [bankRef, setBankRef] = useState('')
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  // UI-only consent gate on the payment step, same as mobile's listing step 5:
+  // it is never sent to the backend.
+  const [termsAccepted, setTermsAccepted] = useState(false)
 
   // Gym profile — location
   const [gymAddress, setGymAddress] = useState('')
@@ -1400,12 +1403,29 @@ export function GymOwnerRegister({
                   )}
                 </div>
 
+                <label htmlFor="terms-accepted" className="flex items-start gap-3 text-sm text-muted-foreground cursor-pointer">
+                  <input
+                    id="terms-accepted"
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-primary"
+                  />
+                  <span>
+                    I agree to the{' '}
+                    <Link href="/terms" target="_blank" className="underline hover:text-primary">Terms of Service</Link>
+                    {' '}and{' '}
+                    <Link href="/privacy" target="_blank" className="underline hover:text-primary">Privacy Policy</Link>.
+                  </span>
+                </label>
+
                 <div className="flex justify-between pt-2">
                   <Button variant="outline" onClick={() => setStep(4)}>
                     <ArrowLeft className="h-4 w-4 mr-1" /> Back
                   </Button>
                   <Button
                     size="lg"
+                    disabled={!termsAccepted}
                     loading={paymentMethod === 'card' ? checkoutMutation.isPending : finalizeMutation.isPending}
                     onClick={() => {
                       setError('')

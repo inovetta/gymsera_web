@@ -58,24 +58,6 @@ export const tenantsApi = {
     return data
   },
 
-  uploadLogo: async (id: string, file: File): Promise<ApiResponse<{ url: string }>> => {
-    const formData = new FormData()
-    formData.append('logo', file)
-    const { data } = await apiClient.post(`/tenants/${id}/logo`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-    return data
-  },
-
-  uploadCoverImage: async (id: string, file: File): Promise<ApiResponse<{ url: string }>> => {
-    const formData = new FormData()
-    formData.append('cover', file)
-    const { data } = await apiClient.post(`/tenants/${id}/cover-image`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-    return data
-  },
-
   // Step 4 photos, held on the tenant until admin approval. POST appends and
   // returns the FULL merged list; PUT replaces the list (how a removal works).
   // Same two calls as mobile's tenants_repository.dart.
