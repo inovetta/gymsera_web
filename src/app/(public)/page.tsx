@@ -11,6 +11,7 @@ import { SearchBar } from '@/components/features/search-bar'
 import { discoveryApi } from '@/lib/api/discovery'
 import { City } from '@/types'
 import { cn } from '@/lib/utils'
+import { ErrorState } from '@/components/features/error-state'
 
 const howItWorksSteps = [
   {
@@ -43,12 +44,12 @@ const ownerBenefits = [
 ]
 
 export default function HomePage() {
-  const { data: featuredData, isLoading: featuredLoading } = useQuery({
+  const { data: featuredData, isLoading: featuredLoading, error: featuredError, refetch: refetchFeatured } = useQuery({
     queryKey: ['featured-gyms'],
     queryFn: () => discoveryApi.getFeaturedGyms(),
   })
 
-  const { data: topRatedData, isLoading: topRatedLoading } = useQuery({
+  const { data: topRatedData, isLoading: topRatedLoading, error: topRatedError, refetch: refetchTopRated } = useQuery({
     queryKey: ['top-rated-gyms'],
     queryFn: () => discoveryApi.getTopRatedGyms(),
   })
@@ -147,6 +148,8 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+          ) : featuredError ? (
+            <ErrorState error={featuredError} what="featured gyms" onRetry={() => refetchFeatured()} compact />
           ) : featuredGyms.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {featuredGyms.slice(0, 6).map((gym) => (
@@ -253,6 +256,8 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+          ) : topRatedError ? (
+            <ErrorState error={topRatedError} what="top rated gyms" onRetry={() => refetchTopRated()} compact />
           ) : topRatedGyms.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {topRatedGyms.slice(0, 6).map((gym) => (

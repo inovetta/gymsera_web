@@ -21,6 +21,7 @@ import { PlanCard } from '@/components/features/plan-card'
 import { ReviewCard } from '@/components/features/review-card'
 import { StarRating } from '@/components/features/star-rating'
 import { EmptyState } from '@/components/features/empty-state'
+import { ErrorState, statusOf } from '@/components/features/error-state'
 import { GymMap } from '@/components/features/gym-map'
 import { discoveryApi } from '@/lib/api/discovery'
 import { subscriptionsApi } from '@/lib/api/subscriptions'
@@ -50,7 +51,7 @@ export default function GymDetailPage() {
   const [reviewPage, setReviewPage] = useState(1)
   const [heroIndex, setHeroIndex] = useState(0)
 
-  const { data: gymData, isLoading: gymLoading } = useQuery({
+  const { data: gymData, isLoading: gymLoading, error: gymError, refetch: refetchGym } = useQuery({
     queryKey: ['gym', id],
     queryFn: () => discoveryApi.getGym(id),
     enabled: !!id,
@@ -117,6 +118,14 @@ export default function GymDetailPage() {
           <Skeleton className="h-4 w-1/3" />
           <Skeleton className="h-24 w-full" />
         </div>
+      </div>
+    )
+  }
+
+  if (gymError && statusOf(gymError) !== 404) {
+    return (
+      <div className="pt-16 flex items-center justify-center min-h-screen">
+        <ErrorState error={gymError} what="this gym" onRetry={() => refetchGym()} />
       </div>
     )
   }

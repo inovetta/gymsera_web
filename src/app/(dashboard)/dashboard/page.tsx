@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ErrorState } from '@/components/features/error-state'
 import { meApi } from '@/lib/api/me'
 import { useAuth } from '@/hooks/use-auth'
 import { formatDate, formatCurrency } from '@/lib/utils'
@@ -25,12 +26,12 @@ function getGreeting() {
 export default function DashboardPage() {
   const { user } = useAuth()
 
-  const { data: subscriptionsData, isLoading: subscriptionsLoading } = useQuery({
+  const { data: subscriptionsData, isLoading: subscriptionsLoading, error: subscriptionsError, refetch: refetchSubscriptions } = useQuery({
     queryKey: ['my-subscriptions'],
     queryFn: () => meApi.getSubscriptions({ limit: 5 }),
   })
 
-  const { data: attendanceData, isLoading: attendanceLoading } = useQuery({
+  const { data: attendanceData, isLoading: attendanceLoading, error: attendanceError, refetch: refetchAttendance } = useQuery({
     queryKey: ['my-attendance'],
     queryFn: () => meApi.getAttendanceLogs(),
   })
@@ -68,6 +69,10 @@ export default function DashboardPage() {
       {/* Active Subscription Banner */}
       {subscriptionsLoading ? (
         <Skeleton className="h-32 rounded-xl" />
+      ) : subscriptionsError ? (
+        <div className="rounded-2xl border">
+          <ErrorState error={subscriptionsError} what="your membership" onRetry={() => refetchSubscriptions()} compact />
+        </div>
       ) : activeSubscription ? (
         <div className="bg-gradient-to-r from-primary to-orange-600 rounded-2xl p-6 text-white">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -125,7 +130,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Gyms Joined</p>
-              <p className="text-2xl font-bold">{subscriptions.length}</p>
+              <p className="text-2xl font-bold">{subscriptionsError ? '—' : subscriptions.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -139,7 +144,7 @@ export default function DashboardPage() {
               {attendanceLoading ? (
                 <Skeleton className="h-7 w-12 mt-1" />
               ) : (
-                <p className="text-2xl font-bold">{totalCheckIns}</p>
+                <p className="text-2xl font-bold">{attendanceError ? '—' : totalCheckIns}</p>
               )}
             </div>
           </CardContent>
@@ -169,6 +174,8 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12" />)}
               </div>
+            ) : attendanceError ? (
+              <ErrorState error={attendanceError} what="your check-ins" onRetry={() => refetchAttendance()} compact />
             ) : recentAttendance.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <CheckCircle className="h-10 w-10 mx-auto mb-2 opacity-30" />

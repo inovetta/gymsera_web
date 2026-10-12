@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { PlanCard } from '@/components/features/plan-card'
 import { EmptyState } from '@/components/features/empty-state'
+import { ErrorState, statusOf } from '@/components/features/error-state'
 import { GymMap } from '@/components/features/gym-map'
 import { discoveryApi } from '@/lib/api/discovery'
 import { subscriptionsApi } from '@/lib/api/subscriptions'
@@ -35,7 +36,7 @@ export default function BranchDetailPage() {
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null)
   const [showSubscribeDialog, setShowSubscribeDialog] = useState(false)
 
-  const { data: gymData, isLoading } = useQuery({
+  const { data: gymData, isLoading, error: gymError, refetch: refetchGym } = useQuery({
     queryKey: ['gym', gymId],
     queryFn: () => discoveryApi.getGym(gymId),
     enabled: !!gymId,
@@ -83,6 +84,14 @@ export default function BranchDetailPage() {
             {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
           </div>
         </div>
+      </div>
+    )
+  }
+
+  if (gymError && statusOf(gymError) !== 404) {
+    return (
+      <div className="pt-16 flex items-center justify-center min-h-screen">
+        <ErrorState error={gymError} what="this branch" onRetry={() => refetchGym()} />
       </div>
     )
   }

@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { GymCard } from '@/components/features/gym-card'
 import { EmptyState } from '@/components/features/empty-state'
+import { ErrorState } from '@/components/features/error-state'
 import { discoveryApi } from '@/lib/api/discovery'
 import { useDebounce } from '@/hooks/use-debounce'
 
@@ -56,14 +57,14 @@ function GymsPageContent() {
     limit: 12,
   }
 
-  const { data: gymsData, isLoading } = useQuery({
+  const { data: gymsData, isLoading, error: gymsError, refetch: refetchGyms } = useQuery({
     queryKey: ['gyms', queryParams],
     queryFn: () => discoveryApi.getGyms(queryParams),
     placeholderData: (prev) => prev,
     enabled: !nearbyMode,
   })
 
-  const { data: nearbyData, isLoading: nearbyLoading } = useQuery({
+  const { data: nearbyData, isLoading: nearbyLoading, error: nearbyError, refetch: refetchNearby } = useQuery({
     queryKey: ['gyms-nearby', userCoords?.lat, userCoords?.lng],
     queryFn: () => discoveryApi.getNearbyGyms(userCoords!.lat, userCoords!.lng),
     enabled: nearbyMode && !!userCoords,
@@ -276,6 +277,12 @@ function GymsPageContent() {
               </div>
             ))}
           </div>
+        ) : (nearbyMode ? nearbyError : gymsError) ? (
+          <ErrorState
+            error={nearbyMode ? nearbyError : gymsError}
+            what="the gyms list"
+            onRetry={() => (nearbyMode ? refetchNearby() : refetchGyms())}
+          />
         ) : gyms.length === 0 ? (
           <EmptyState
             icon={Search}

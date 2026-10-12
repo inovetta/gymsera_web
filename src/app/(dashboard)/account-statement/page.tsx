@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { EmptyState } from '@/components/features/empty-state'
+import { ErrorState } from '@/components/features/error-state'
 import { meApi } from '@/lib/api/me'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils'
@@ -21,7 +22,7 @@ export default function AccountStatementPage() {
   const [endDate, setEndDate] = useState('')
   const [isExporting, setIsExporting] = useState(false)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error: loadError, refetch } = useQuery({
     queryKey: ['account-statement', startDate, endDate],
     queryFn: () => meApi.getAccountStatement({
       startDate: startDate || undefined,
@@ -155,6 +156,8 @@ export default function AccountStatementPage() {
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
         </div>
+      ) : loadError ? (
+        <ErrorState error={loadError} what="your account statement" onRetry={() => refetch()} />
       ) : entries.length === 0 ? (
         <EmptyState
           icon={FileText}
