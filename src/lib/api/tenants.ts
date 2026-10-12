@@ -76,6 +76,23 @@ export const tenantsApi = {
     return data
   },
 
+  // Step 4 photos, held on the tenant until admin approval. POST appends and
+  // returns the FULL merged list; PUT replaces the list (how a removal works).
+  // Same two calls as mobile's tenants_repository.dart.
+  uploadOnboardingImages: async (id: string, files: File[]): Promise<ApiResponse<{ imagesJson: string[] }>> => {
+    const formData = new FormData()
+    files.forEach((file) => formData.append('images', file))
+    const { data } = await apiClient.post(`/tenants/${id}/onboarding-images`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  },
+
+  replaceOnboardingImages: async (id: string, imagesJson: string[]): Promise<ApiResponse<{ imagesJson: string[] }>> => {
+    const { data } = await apiClient.put(`/tenants/${id}/onboarding-images`, { imagesJson })
+    return data
+  },
+
   selectPackage: async (id: string, payload: SelectPackagePayload): Promise<ApiResponse<{ tenant: Tenant }>> => {
     const { data } = await apiClient.post(`/tenants/${id}/select-package`, payload)
     return data
