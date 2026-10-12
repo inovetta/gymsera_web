@@ -1,64 +1,48 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
-import { CreditCard, CheckCircle2, AlertTriangle, ExternalLink, RefreshCw } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { EmptyState } from '@/components/features/empty-state'
-import { BillingPlanCard } from '@/components/features/billing-plan-card'
+import { CheckCircle2, AlertTriangle, RefreshCw, CreditCard, ExternalLink } from 'lucide-react'
+import { buttonVariants } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { billingPlansApi } from '@/lib/api/billing-plans'
 import { useToast } from '@/hooks/use-toast'
-import { formatCurrency, formatDate } from '@/lib/utils'
-
-// GymsEra's own platform subscription (branch-count plan) — distinct from
-// the member-facing "My Subscriptions" page (a gym membership someone
-// bought), which lives at /subscriptions. This page is for a HOST managing
-// their own GymsEra account, whichever provider (Apple/Google/Stripe/manual)
-// it's billed through.
-const STATUS_LABEL: Record<string, string> = {
-  ACTIVE: 'Active',
-  EXPIRED: 'Expired',
-  CANCELLED: 'Cancelled',
-  PENDING_MIGRATION: 'Updating…',
-  PENDING_CANCEL: 'Action needed',
-  SCHEDULED: 'Cancelling at period end',
-}
+import { getCmsUrl } from '@/lib/cms'
+import { cn } from '@/lib/utils'
 
 // Return-from-Stripe confirmation polling: every 3 s for up to ~1 minute.
 const CONFIRM_POLL_MS = 3000
 const CONFIRM_MAX_POLLS = 20
 
-const PLATFORM_LABEL: Record<string, string> = {
-  MANUAL: 'Bank Transfer / Manual',
-  IOS: 'Apple App Store',
-  ANDROID: 'Google Play',
-  STRIPE: 'Card (Stripe)',
-}
-
+/**
+ * UX-02 & BILL-14: Thin Stripe-return page.
+ * The host billing screen has moved to the CMS (/settings/billing).
+ * This page serves only to verify returning Stripe checkout sessions server-side
+ * via GET /billing/stripe/session/:id, ensure ?checkout=success alone never grants
+ * or shows success, and then link/redirect to the CMS /settings/billing.
+ */
 export default function GymsEraBillingPage() {
   const { toast } = useToast()
-  const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const checkoutResult = searchParams.get('checkout')
   const sessionId = searchParams.get('session_id')
-  const [changingPlan, setChangingPlan] = useState(false)
-  const [changeCycle, setChangeCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY')
+
+  const cmsUrl = getCmsUrl()
+  const cmsBillingUrl = cmsUrl ? `${cmsUrl}/settings/billing` : null
 
   useEffect(() => {
     if (checkoutResult === 'cancelled') {
-      toast({ title: 'Checkout cancelled', description: 'No payment was made — you can try again anytime.', variant: 'destructive' })
+      toast({
+        title: 'Checkout cancelled',
+        description: 'No payment was made — you can try again anytime.',
+        variant: 'destructive',
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkoutResult])
 
-  // Returning from Stripe Checkout: only the backend's server-side check of
-  // the Checkout Session counts, polled until the webhook has granted the
-  // plan. `?checkout=success` on its own proves nothing and shows nothing
-  // (BILL-14).
+  // Polling server-side status of Checkout Session
   const sessionCheck = useQuery({
     queryKey: ['stripe-checkout-session', sessionId],
     queryFn: () => billingPlansApi.getCheckoutSessionStatus(sessionId!),
@@ -70,215 +54,139 @@ export default function GymsEraBillingPage() {
       return settled || query.state.dataUpdateCount >= CONFIRM_MAX_POLLS ? false : CONFIRM_POLL_MS
     },
   })
+
   const checkout = sessionCheck.data?.data
   const checkoutEntitled = checkout?.entitled === true
 
   useEffect(() => {
     if (!checkoutEntitled) return
-    toast({ title: 'Payment confirmed', description: 'Your GymsEra subscription is now active.', variant: 'success' })
-    queryClient.invalidateQueries({ queryKey: ['gymsera-subscription'] })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkoutEntitled])
+    toast({
+      title: 'Payment confirmed',
+      description: 'Your GymsEra subscription is now active.',
+      variant: 'success',
+    })
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['gymsera-subscription'],
-    queryFn: () => billingPlansApi.getCurrentSubscription(),
-    retry: false,
-  })
-
-  const subscription = data?.data
-
-  const { data: plansData } = useQuery({
-    queryKey: ['billing-plans-catalog'],
-    queryFn: () => billingPlansApi.getPlans(),
-    enabled: changingPlan,
-  })
-  const plans = plansData?.data?.plans || []
-
-  const handleManageBilling = async () => {
-    try {
-      const res = await billingPlansApi.createPortalSession(window.location.href)
-      window.location.href = res.data.url
-    } catch {
-      toast({ title: 'Could not open billing portal', variant: 'destructive' })
+    if (cmsBillingUrl) {
+      const timer = setTimeout(() => {
+        window.location.href = cmsBillingUrl
+      }, 500)
+      return () => clearTimeout(timer)
     }
-  }
-
-  // Same-provider (Stripe → Stripe) upgrade/downgrade — updates the
-  // existing Stripe subscription's price in place rather than starting a
-  // new checkout (which would create a second, duplicate-billing Stripe
-  // subscription — see stripe-billing.service.js#changeSubscriptionPlan on
-  // the backend). Applies once the resulting webhook confirms it.
-  const changePlanMutation = useMutation({
-    mutationFn: (billingPlanId: string) => billingPlansApi.changePlan({ billingPlanId, billingCycle: changeCycle }),
-    onSuccess: () => {
-      toast({ title: 'Plan change requested', description: 'This updates automatically once Stripe confirms it — usually within a few seconds.', variant: 'success' })
-      setChangingPlan(false)
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['gymsera-subscription'] }), 3000)
-    },
-    onError: (err: any) => toast({ title: 'Could not change plan', description: err?.response?.data?.message, variant: 'destructive' }),
-  })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkoutEntitled, cmsBillingUrl])
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="p-6 max-w-xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold">GymsEra Billing</h1>
-        <p className="text-muted-foreground mt-1">Your GymsEra account subscription — separate from any gym membership.</p>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Stripe payment confirmation. Host billing management lives in the CMS portal.
+        </p>
       </div>
 
-      {isLoading ? (
-        <Skeleton className="h-56 rounded-xl" />
-      ) : !subscription ? (
-        <EmptyState
-          icon={CreditCard}
-          title="No GymsEra subscription found"
-          description="This account doesn't have an active GymsEra branch-count subscription yet."
-          actionLabel="Register your gym"
-          actionHref="/gym-owner/register"
-        />
-      ) : (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Plan</p>
-              <p className="text-xl font-bold">
-                {subscription.branchCount ? `Up to ${subscription.branchCount} branches` : 'Custom plan'}
-              </p>
-            </div>
-            <Badge
-              variant="outline"
-              className={
-                subscription.status === 'ACTIVE'
-                  ? 'text-success border-success/30 bg-success/10'
-                  : subscription.status === 'PENDING_CANCEL'
-                    ? 'text-warning border-warning/30 bg-warning/10'
-                    : 'text-muted-foreground'
-              }
-            >
-              {STATUS_LABEL[subscription.status] || subscription.status}
-            </Badge>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Billed via</p>
-                <p className="font-medium">{PLATFORM_LABEL[subscription.platform] || subscription.platform}</p>
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-primary" />
+            Payment Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!sessionId ? (
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 rounded-xl bg-muted/60 p-4 text-sm">
+                <AlertTriangle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-foreground">No GymsEra subscription found</p>
+                  <p className="text-muted-foreground mt-0.5">
+                    No checkout session was provided to verify. To manage your GymsEra plan, visit the CMS billing page.
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-muted-foreground">Price</p>
-                <p className="font-medium">
-                  {formatCurrency(subscription.amount)} / {subscription.billingCycle.toLowerCase()}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Renews / expires</p>
-                <p className="font-medium">{formatDate(subscription.endDate)}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Auto-renew</p>
-                <p className="font-medium">{subscription.autoRenew ? 'On' : 'Off'}</p>
-              </div>
-            </div>
 
-            {subscription.statusNote && (
-              <div className="flex items-start gap-3 rounded-xl bg-warning/10 border border-warning/30 p-4 text-sm">
-                <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-                <span>{subscription.statusNote}</span>
-              </div>
-            )}
-
-            {subscription.overQuotaCount > 0 && (
-              <div className="flex items-start gap-3 rounded-xl bg-destructive/10 border border-destructive/30 p-4 text-sm">
-                <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                <span>
-                  You have {subscription.overQuotaCount} more active {subscription.overQuotaCount === 1 ? 'branch' : 'branches'} than
-                  your current plan covers. Upgrade to restore full access.
-                </span>
-              </div>
-            )}
-
-            {subscription.status === 'ACTIVE' && subscription.platform === 'STRIPE' && (
-              <div className="flex flex-wrap gap-3">
-                <Button onClick={handleManageBilling} variant="outline">
+              {cmsBillingUrl ? (
+                <a
+                  href={cmsBillingUrl}
+                  className={cn(buttonVariants({ variant: 'default' }), 'w-full')}
+                >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Manage payment method & invoices
-                </Button>
-                <Button onClick={() => setChangingPlan((v) => !v)}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  {changingPlan ? 'Cancel' : 'Change plan'}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {changingPlan && subscription && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <p className="font-semibold">Choose a new plan</p>
-              <div className="flex gap-1 rounded-lg bg-muted p-1 text-sm">
-                <button
-                  className={`px-3 py-1 rounded-md ${changeCycle === 'MONTHLY' ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
-                  onClick={() => setChangeCycle('MONTHLY')}
-                >
-                  Monthly
-                </button>
-                <button
-                  className={`px-3 py-1 rounded-md ${changeCycle === 'YEARLY' ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
-                  onClick={() => setChangeCycle('YEARLY')}
-                >
-                  Annual
-                </button>
-              </div>
+                  Go to CMS Billing
+                </a>
+              ) : (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+                  CMS URL is not configured. Please set NEXT_PUBLIC_CMS_URL.
+                </div>
+              )}
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {plans.map((plan) => (
-                <BillingPlanCard
-                  key={plan.id}
-                  plan={plan}
-                  annual={changeCycle === 'YEARLY'}
-                  selected={plan.branchCount === subscription.branchCount}
-                  onSelect={(p) => changePlanMutation.mutate(p.id)}
-                />
-              ))}
+          ) : sessionCheck.isError ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 p-4 rounded-xl">
+                <AlertTriangle className="h-5 w-5 shrink-0" />
+                <span>We couldn&apos;t verify this payment.</span>
+              </div>
+              {cmsBillingUrl && (
+                <a
+                  href={cmsBillingUrl}
+                  className={cn(buttonVariants({ variant: 'outline' }), 'w-full')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Go to CMS Billing
+                </a>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : !checkout ? (
+            <div className="flex items-center gap-3 text-sm text-muted-foreground p-4">
+              <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+              <span>Confirming payment…</span>
+            </div>
+          ) : checkout.entitled ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 text-sm text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 p-4 rounded-xl">
+                <CheckCircle2 className="h-5 w-5 shrink-0" />
+                <span className="font-medium">Payment confirmed. Your subscription is active.</span>
+              </div>
 
-      {sessionId && (
-        sessionCheck.isError ? (
-          <div className="flex items-center gap-2 text-sm text-destructive">
-            <AlertTriangle className="h-4 w-4" />
-            We couldn&apos;t verify this payment.
-          </div>
-        ) : !checkout ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <RefreshCw className="h-4 w-4 animate-spin" />
-            Confirming payment…
-          </div>
-        ) : checkout.entitled ? (
-          <div className="flex items-center gap-2 text-sm text-success">
-            <CheckCircle2 className="h-4 w-4" />
-            Payment confirmed.
-            <button onClick={() => refetch()} className="underline underline-offset-2">Refresh status</button>
-          </div>
-        ) : checkout.confirmed ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <RefreshCw className="h-4 w-4 animate-spin" />
-            Payment received — activating your plan…
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-sm text-destructive">
-            <AlertTriangle className="h-4 w-4" />
-            This payment was not completed. No plan was activated.
-          </div>
-        )
-      )}
+              {cmsBillingUrl ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Redirecting to CMS billing settings…</p>
+                  <a
+                    href={cmsBillingUrl}
+                    className={cn(buttonVariants({ variant: 'default' }), 'w-full')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Go to CMS Billing
+                  </a>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+                  CMS URL is not configured. Please set NEXT_PUBLIC_CMS_URL.
+                </div>
+              )}
+            </div>
+          ) : checkout.confirmed ? (
+            <div className="flex items-center gap-3 text-sm text-muted-foreground p-4">
+              <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+              <span>Payment received — activating your plan…</span>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 p-4 rounded-xl">
+                <AlertTriangle className="h-5 w-5 shrink-0" />
+                <span>This payment was not completed. No plan was activated.</span>
+              </div>
+              {cmsBillingUrl && (
+                <a
+                  href={cmsBillingUrl}
+                  className={cn(buttonVariants({ variant: 'outline' }), 'w-full')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Go to CMS Billing
+                </a>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
