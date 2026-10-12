@@ -28,6 +28,7 @@ import { discoveryApi } from '@/lib/api/discovery'
 import { tenantsApi } from '@/lib/api/tenants'
 import { packagesApi } from '@/lib/api/packages'
 import { billingPlansApi } from '@/lib/api/billing-plans'
+import { RegisterPlansStep, PlanDraft, draftsToApiPlans } from '@/components/features/register-plans-step'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
@@ -194,6 +195,13 @@ export function GymOwnerRegister({
   const [branchOpeningTime, setBranchOpeningTime] = useState('')
   const [branchClosingTime, setBranchClosingTime] = useState('')
 
+  // Step 3 has two phases so the numbered steps stay put: the profile form,
+  // then the membership plans. Nothing is sent until the plans are added —
+  // the backend refuses to finalize an application with no plans.
+  const [gymPhase, setGymPhase] = useState<'profile' | 'plans'>('profile')
+  const [gymProfileDraft, setGymProfileDraft] = useState<GymProfileData | null>(null)
+  const [plans, setPlans] = useState<PlanDraft[]>([])
+
   // Skip auth steps if already logged in
   useEffect(() => {
     if (!authLoading && isAuthenticated && step < 2) {
@@ -358,15 +366,21 @@ export function GymOwnerRegister({
         openingTime: isMainBranch ? (openingTime || null) : (branchOpeningTime || null),
         closingTime: isMainBranch ? (closingTime || null) : (branchClosingTime || null),
         cityId: tenant?.cityId ?? null,
+        plans: draftsToApiPlans(plans),
       },
     }),
     onSuccess: () => { setStep(4); setError('') },
     onError: (err: any) => {
       const msg = extractValidationErrorMessage(err, 'Failed to save gym profile.')
       setError(msg)
-      extractFieldErrors(err).forEach(({ field, message }) => {
+      const fieldErrors = extractFieldErrors(err)
+      fieldErrors.forEach(({ field, message }) => {
         gymForm.setError(field as any, { type: 'server', message })
       })
+      // A rejected profile field is fixed on the profile form, not here.
+      if (fieldErrors.some(({ field }) => ['name', 'description', 'genderType'].includes(field))) {
+        setGymPhase('profile')
+      }
     },
   })
 
@@ -824,7 +838,24 @@ export function GymOwnerRegister({
             )}
 
             {/* ── Step 3: Gym Profile ── */}
-            {step === 3 && (
+            {step === 3 && gymPhase === 'plans' && (
+              <RegisterPlansStep
+                plans={plans}
+                onChange={setPlans}
+                loading={gymProfileMutation.isPending}
+                onBack={() => { setError(''); setGymPhase('profile') }}
+                onContinue={() => {
+                  if (plans.length === 0) {
+                    setError('Add at least one membership plan to continue.')
+                    return
+                  }
+                  setError('')
+                  gymProfileMutation.mutate(gymProfileDraft!)
+                }}
+              />
+            )}
+
+            {step === 3 && gymPhase === 'profile' && (
               <div className="space-y-6">
                 <div>
                   <h1 className="text-2xl font-bold mb-1">Gym Profile</h1>
@@ -840,7 +871,8 @@ export function GymOwnerRegister({
                       return
                     }
                     setError('')
-                    gymProfileMutation.mutate(data)
+                    setGymProfileDraft(data)
+                    setGymPhase('plans')
                   })}
                   className="space-y-5"
                 >
@@ -1012,8 +1044,8 @@ export function GymOwnerRegister({
                     <Button variant="outline" type="button" onClick={() => setStep(2)}>
                       <ArrowLeft className="h-4 w-4 mr-1" /> Back
                     </Button>
-                    <Button type="submit" size="lg" loading={gymProfileMutation.isPending}>
-                      Continue to Packages <ChevronRight className="h-4 w-4 ml-1" />
+                    <Button type="submit" size="lg">
+                      Continue to Plans <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
                 </form>
