@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios'
+import { newRequestId } from './request-id'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apistaging.gymsera.com'
 
@@ -9,6 +10,9 @@ const apiClient: AxiosInstance = axios.create({
 })
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  // OBS-01: one id per call. Set only when absent, so a caller's own id and the replay of the same
+  // request after a token refresh keep theirs.
+  if (!config.headers.has('X-Request-Id')) config.headers.set('X-Request-Id', newRequestId())
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('gymsera_access_token')
     if (token) {
