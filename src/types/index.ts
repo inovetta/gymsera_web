@@ -22,14 +22,14 @@ export interface User {
   profileImageUrl?: string
   lastLoginAt?: string
   createdAt: string
-  // Extended profile fields
-  gender?: string
-  dateOfBirth?: string
-  height?: number
-  weight?: number
-  fitnessGoal?: string
-  allergies?: string
-  foodPreferences?: string
+  // GET /me/profile: member details live under `profile`
+  profile?: {
+    gender?: string | null
+    dateOfBirth?: string | null
+    heightCm?: number | null
+    weightKg?: number | null
+    fitnessGoal?: string | null
+  } | null
 }
 
 export interface Tenant {

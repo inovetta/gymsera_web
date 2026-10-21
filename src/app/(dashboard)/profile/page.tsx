@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorState } from '@/components/features/error-state'
 import { meApi } from '@/lib/api/me'
+import { fitnessFormValues, fitnessUpdatePayload } from '@/lib/profile-fitness'
 import { useAuthStore } from '@/stores/auth.store'
 import { useToast } from '@/hooks/use-toast'
 import { getInitials } from '@/lib/utils'
@@ -32,8 +33,6 @@ const fitnessSchema = z.object({
   height: z.coerce.number().optional(),
   weight: z.coerce.number().optional(),
   fitnessGoal: z.string().optional(),
-  allergies: z.string().optional(),
-  foodPreferences: z.string().optional(),
 })
 
 const passwordSchema = z.object({
@@ -72,15 +71,7 @@ export default function ProfilePage() {
 
   const fitnessForm = useForm<FitnessFormData>({
     resolver: zodResolver(fitnessSchema),
-    values: user ? {
-      gender: user.gender || '',
-      dateOfBirth: user.dateOfBirth || '',
-      height: user.height,
-      weight: user.weight,
-      fitnessGoal: user.fitnessGoal || '',
-      allergies: user.allergies || '',
-      foodPreferences: user.foodPreferences || '',
-    } : undefined,
+    values: user ? fitnessFormValues(user) : undefined,
   })
 
   const passwordForm = useForm<PasswordFormData>({ resolver: zodResolver(passwordSchema) })
@@ -96,7 +87,7 @@ export default function ProfilePage() {
   })
 
   const updateFitnessMutation = useMutation({
-    mutationFn: (data: FitnessFormData) => meApi.updateProfile(data),
+    mutationFn: (data: FitnessFormData) => meApi.updateProfile(fitnessUpdatePayload(data)),
     onSuccess: (response) => {
       if (response.data?.profile) setUser(response.data.profile)
       toast({ title: 'Fitness profile updated!', variant: 'success' })
@@ -304,22 +295,6 @@ export default function ProfilePage() {
                         <SelectItem value="GENERAL_FITNESS">General Fitness</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="allergies" className="mb-2 block">Allergies</Label>
-                    <Input
-                      id="allergies"
-                      placeholder="e.g. peanuts, gluten"
-                      {...fitnessForm.register('allergies')}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="foodPreferences" className="mb-2 block">Food Preferences</Label>
-                    <Input
-                      id="foodPreferences"
-                      placeholder="e.g. vegetarian, halal"
-                      {...fitnessForm.register('foodPreferences')}
-                    />
                   </div>
                 </div>
                 <div className="flex justify-end pt-2">
