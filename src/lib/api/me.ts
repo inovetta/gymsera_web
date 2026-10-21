@@ -6,11 +6,9 @@ export interface UpdateProfilePayload {
   phone?: string
   gender?: string
   dateOfBirth?: string
-  height?: number
-  weight?: number
+  heightCm?: number
+  weightKg?: number
   fitnessGoal?: string
-  allergies?: string
-  foodPreferences?: string
 }
 
 export interface ChangePasswordPayload {
