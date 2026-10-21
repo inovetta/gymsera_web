@@ -62,8 +62,8 @@ export default function ForgotPasswordPage() {
     try {
       await authApi.confirmPasswordReset({
         email,
-        otp: data.otp,
-        newPassword: data.newPassword,
+        code: data.otp,
+        password: data.newPassword,
       })
       setStep(3)
     } catch (err: unknown) {

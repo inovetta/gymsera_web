@@ -32,10 +32,11 @@ export interface PasswordResetPayload {
   email: string
 }
 
+// Same body the API validates (passwordResetConfirm) and the mobile app sends.
 export interface ConfirmPasswordResetPayload {
   email: string
-  otp: string
-  newPassword: string
+  code: string
+  password: string
 }
 
 export const authApi = {
