@@ -53,6 +53,12 @@ export const meApi = {
     return data
   },
 
+  /** GLB-09: everything held about the signed-in person (the file's content, unwrapped). */
+  getDataExport: async (): Promise<Record<string, unknown>> => {
+    const { data } = await apiClient.get('/me/data-export', { timeout: 90000 })
+    return data.data
+  },
+
   changePassword: async (payload: ChangePasswordPayload): Promise<ApiResponse<null>> => {
     const { data } = await apiClient.post('/me/change-password', payload)
     return data

@@ -187,6 +187,7 @@ export default function PrivacyPolicyPage() {
             </p>
             <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-slate-600">
               <li><strong>Access & Modification:</strong> You can review and edit your name, phone number, and avatar directly in the mobile app or web portal profile settings.</li>
+              <li><strong>Data Export:</strong> You can download a copy of everything we hold about you as a JSON file: in the mobile app (Settings &rarr; Download my data) or on the web at <Link href="/profile?tab=data" className="text-primary hover:underline">Profile &rarr; Your data</Link>. It includes your profile, memberships, payments, check-ins, messages, reviews and devices, and never your password or sign-in tokens. Gym owners also receive their business record.</li>
               <li><strong>Permissions:</strong> You can revoke location, camera, or photo library permissions anytime via your device operating system settings.</li>
               <li>
                 <strong>Account Deletion:</strong> You can delete your account in the mobile app (Settings &rarr; Delete Account) after confirming it is you with your password or by signing in again with Google or Apple. If you cannot use the app, email <a href="mailto:support@gymsera.com" className="text-primary hover:underline">support@gymsera.com</a> and we will start the same process once we have verified it is you.

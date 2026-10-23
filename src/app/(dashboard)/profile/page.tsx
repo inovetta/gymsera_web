@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorState } from '@/components/features/error-state'
+import { DataExportCard } from '@/components/features/data-export-card'
 import { meApi } from '@/lib/api/me'
 import { fitnessFormValues, fitnessUpdatePayload } from '@/lib/profile-fitness'
 import { useAuthStore } from '@/stores/auth.store'
@@ -50,6 +51,11 @@ type PasswordFormData = z.infer<typeof passwordSchema>
 
 export default function ProfilePage() {
   const { toast } = useToast()
+  // The privacy page links to /profile?tab=data. Read it after mount (no Suspense boundary needed).
+  const [tab, setTab] = useState('personal')
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('tab') === 'data') setTab('data')
+  }, [])
   const queryClient = useQueryClient()
   const setUser = useAuthStore((s) => s.setUser)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -175,7 +181,7 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="personal">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="personal" className="gap-2">
             <User className="h-4 w-4" />
@@ -184,6 +190,9 @@ export default function ProfilePage() {
           <TabsTrigger value="fitness" className="gap-2">
             <Activity className="h-4 w-4" />
             Fitness
+          </TabsTrigger>
+          <TabsTrigger value="data" className="gap-2">
+            Your data
           </TabsTrigger>
           <TabsTrigger value="security" className="gap-2">
             <Lock className="h-4 w-4" />
@@ -305,6 +314,11 @@ export default function ProfilePage() {
               </form>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Your data (GLB-09) */}
+        <TabsContent value="data">
+          <DataExportCard />
         </TabsContent>
 
         {/* Security Tab */}
