@@ -22,6 +22,8 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }), toast }))
 
 const api = vi.hoisted(() => ({
   getCheckoutSessionStatus: vi.fn(),
+  // NEW-21 / NEW-32: the page also shows the plan's notices; a host-less session just has none
+  getCurrentSubscription: vi.fn().mockRejectedValue({ response: { status: 404 } }),
 }))
 vi.mock('@/lib/api/billing-plans', () => ({ billingPlansApi: api }))
 

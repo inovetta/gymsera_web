@@ -7,6 +7,7 @@ import { CheckCircle2, AlertTriangle, RefreshCw, CreditCard, ExternalLink } from
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { billingPlansApi } from '@/lib/api/billing-plans'
+import { BillingNotices } from '@/components/features/billing-notices'
 import { useToast } from '@/hooks/use-toast'
 import { getCmsUrl } from '@/lib/cms'
 import { cn } from '@/lib/utils'
@@ -83,6 +84,8 @@ export default function GymsEraBillingPage() {
           Stripe payment confirmation. Host billing management lives in the CMS portal.
         </p>
       </div>
+
+      <BillingNotices />
 
       <Card className="shadow-sm">
         <CardHeader>
