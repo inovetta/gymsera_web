@@ -16,6 +16,13 @@ export interface CurrentTenantSubscription {
   endDate: string
   autoRenew: boolean
   overQuotaCount: number
+  // NEW-21 / NEW-32: what the API says is wrong with the plan (see lib/billing-notices.ts)
+  paymentIssue?: { provider?: string; manageUrl?: string | null; payBy?: string; daysLeft?: number } | null
+  overQuotaGraceRemainingDays?: number
+  isOverQuotaGraceExpired?: boolean
+  duplicateBilling?: boolean
+  duplicateBillingPlatform?: string | null
+  duplicateBillingManageUrl?: string | null
 }
 
 export interface CheckoutSessionStatus {
