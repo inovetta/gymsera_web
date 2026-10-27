@@ -1,7 +1,8 @@
 import axios, { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios'
 import { newRequestId } from './request-id'
+import { apiUrl } from '../api-url'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apistaging.gymsera.com'
+const API_BASE_URL = apiUrl()
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: `${API_BASE_URL}/api/v1`,

@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { NextRequest } from 'next/server'
-import nextConfig from '../../next.config.mjs'
+import { PHASE_DEVELOPMENT_SERVER } from 'next/constants'
+import nextConfigFor from '../../next.config.mjs'
 import { middleware } from '@/middleware'
 import fs from 'fs'
 import path from 'path'
+
+// The config is a function of the build phase (NEW-132); redirects are the same in every phase.
+const nextConfig = nextConfigFor(PHASE_DEVELOPMENT_SERVER)
 
 describe('UX-01: Onboarding removal & 301 redirect', () => {
   it('nextConfig defines permanent redirect from /onboarding to /gym-owner/register', async () => {
