@@ -20,10 +20,9 @@ const mockBillingPlansApi = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/api/billing-plans', () => ({ billingPlansApi: mockBillingPlansApi }))
 
-vi.mock('@/lib/api/discovery', () => ({
-  discoveryApi: {
-    getCities: vi.fn().mockResolvedValue({ data: { cities: [] } }),
-  },
+// Phase 7 P6 (BUG-26): registration reads every active city from GET /cities.
+vi.mock('@/lib/api/cities', () => ({
+  citiesApi: { getAll: vi.fn().mockResolvedValue({ data: [] }) },
 }))
 
 vi.mock('@/lib/api/packages', () => ({

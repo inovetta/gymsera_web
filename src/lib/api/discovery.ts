@@ -10,6 +10,11 @@ function normalizeGym(raw: any): GymListing {
     featured: raw.featured ?? raw.isFeatured ?? false,
     phone: raw.phone ?? raw.contactPhone,
     averageRating: Number(raw.averageRating) || 0,
+    // BUG-27: approved reviews only (the API's reviewCount); 0 = "New".
+    totalReviews: Number(raw.totalReviews ?? raw.reviewCount) || 0,
+    // NEW-145: the API's minPrice, in the listing's currency; none = no price shown.
+    startingPrice: raw.startingPrice ?? (Number(raw.minPrice) > 0 ? Number(raw.minPrice) : undefined),
+    currency: raw.currency,
     facilities: raw.facilities ?? Object.keys(facilitiesJson).filter((k) => facilitiesJson[k]),
     images: raw.images ?? raw.imagesJson ?? [],
   }

@@ -70,6 +70,7 @@ export interface GymListing {
   longitude?: number
   averageRating: number
   totalReviews?: number
+  currency?: string
   logoUrl?: string
   coverImageUrl?: string
   genderType: GenderType
@@ -118,6 +119,8 @@ export interface MembershipPlan {
   durationType: PlanDurationType
   durationValue: number
   price: number
+  // BUG-09: the plan is sold in its branch's currency.
+  currency?: string
   joiningFee: number
   securityFee: number
   visitLimit?: number

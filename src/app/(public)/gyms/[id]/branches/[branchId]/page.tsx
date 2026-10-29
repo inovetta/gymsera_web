@@ -401,18 +401,18 @@ export default function BranchDetailPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Price</span>
-                  <span className="font-medium text-primary">{formatCurrency(Number(selectedPlan.price))}</span>
+                  <span className="font-medium text-primary">{formatCurrency(Number(selectedPlan.price), selectedPlan.currency)}</span>
                 </div>
                 {Number(selectedPlan.joiningFee) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Joining Fee</span>
-                    <span className="font-medium">{formatCurrency(Number(selectedPlan.joiningFee))}</span>
+                    <span className="font-medium">{formatCurrency(Number(selectedPlan.joiningFee), selectedPlan.currency)}</span>
                   </div>
                 )}
                 {Number((selectedPlan as any).securityFee) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Security Fee</span>
-                    <span className="font-medium">{formatCurrency(Number((selectedPlan as any).securityFee))}</span>
+                    <span className="font-medium">{formatCurrency(Number((selectedPlan as any).securityFee), selectedPlan.currency)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
@@ -424,7 +424,7 @@ export default function BranchDetailPage() {
                 <div className="border-t pt-3 flex justify-between font-semibold">
                   <span>Total Due Today</span>
                   <span className="text-primary text-lg">
-                    {formatCurrency(Number(selectedPlan.price) + Number(selectedPlan.joiningFee) + Number((selectedPlan as any).securityFee ?? 0))}
+                    {formatCurrency(Number(selectedPlan.price) + Number(selectedPlan.joiningFee) + Number((selectedPlan as any).securityFee ?? 0), selectedPlan.currency)}
                   </span>
                 </div>
               </div>

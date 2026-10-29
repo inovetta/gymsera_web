@@ -51,11 +51,11 @@ export function PlanCard({ plan, onSubscribe, highlighted = false }: PlanCardPro
 
         <div className="mt-4">
           <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-bold text-primary">{formatCurrency(Number(plan.price))}</span>
+            <span className="text-3xl font-bold text-primary">{formatCurrency(Number(plan.price), plan.currency)}</span>
             <span className="text-muted-foreground text-sm">/{formatDuration(plan.durationType, plan.durationValue)}</span>
           </div>
           {Number(plan.joiningFee) > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">+ {formatCurrency(Number(plan.joiningFee))} joining fee</p>
+            <p className="text-xs text-muted-foreground mt-1">+ {formatCurrency(Number(plan.joiningFee), plan.currency)} joining fee</p>
           )}
         </div>
       </CardHeader>
