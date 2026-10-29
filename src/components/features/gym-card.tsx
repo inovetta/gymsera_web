@@ -80,12 +80,16 @@ export function GymCard({ gym, className }: GymCardProps) {
           <h3 className="font-semibold text-base leading-tight line-clamp-1">{gym.name}</h3>
         </div>
 
-        {/* Rating */}
+        {/* Rating: approved reviews only; none = "New" (BUG-27) */}
         <div className="flex items-center gap-2 mb-2">
-          <StarRating rating={Number(gym.averageRating) || 0} size="sm" />
-          <span className="text-sm font-medium">{(Number(gym.averageRating) || 0).toFixed(1)}</span>
-          {gym.totalReviews !== undefined && (
-            <span className="text-xs text-muted-foreground">({gym.totalReviews})</span>
+          {(gym.totalReviews ?? 0) > 0 ? (
+            <>
+              <StarRating rating={Number(gym.averageRating) || 0} size="sm" />
+              <span className="text-sm font-medium">{(Number(gym.averageRating) || 0).toFixed(1)}</span>
+              <span className="text-xs text-muted-foreground">({gym.totalReviews})</span>
+            </>
+          ) : (
+            <Badge variant="secondary" className="text-xs">New</Badge>
           )}
         </div>
 
@@ -102,7 +106,7 @@ export function GymCard({ gym, className }: GymCardProps) {
           {gym.startingPrice !== undefined ? (
             <div>
               <p className="text-xs text-muted-foreground">Starting from</p>
-              <p className="font-semibold text-primary">{formatCurrency(gym.startingPrice)}</p>
+              <p className="font-semibold text-primary">{formatCurrency(gym.startingPrice, gym.currency)}</p>
             </div>
           ) : (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">

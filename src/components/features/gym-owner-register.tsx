@@ -24,7 +24,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LocationPicker, LatLng } from '@/components/features/location-picker'
 import { authApi } from '@/lib/api/auth'
-import { discoveryApi } from '@/lib/api/discovery'
+import { citiesApi } from '@/lib/api/cities'
 import { tenantsApi } from '@/lib/api/tenants'
 import { packagesApi } from '@/lib/api/packages'
 import { billingPlansApi } from '@/lib/api/billing-plans'
@@ -241,9 +241,10 @@ export function GymOwnerRegister({
     return () => clearInterval(timer)
   }, [step])
 
+  // Every active city (GET /cities), not the traveller list of cities with a live gym (BUG-26).
   const { data: citiesData } = useQuery({
-    queryKey: ['cities'],
-    queryFn: () => discoveryApi.getCities(),
+    queryKey: ['all-cities'],
+    queryFn: () => citiesApi.getAll(),
   })
 
   const { data: packagesData, isLoading: packagesLoading } = useQuery({
@@ -269,7 +270,7 @@ export function GymOwnerRegister({
   })
 
   const bankInstructions = bankInstructionsData?.data
-  const cities = citiesData?.data?.cities || []
+  const cities = citiesData?.data || []
   const packages = packagesData?.data?.filter((p) => p.status === 'ACTIVE') || []
   const billingPlans = billingPlansData?.data?.plans || []
   // The BillingPlan tier matching the legacy package's branch count — picked

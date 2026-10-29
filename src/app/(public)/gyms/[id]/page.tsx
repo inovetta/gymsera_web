@@ -232,9 +232,15 @@ export default function GymDetailPage() {
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex flex-wrap gap-6">
             <div className="flex items-center gap-2">
-              <Star className="h-4 w-4 text-warning fill-warning" />
-              <span className="font-bold">{(Number(gym.averageRating) || 0).toFixed(1)}</span>
-              <span className="text-muted-foreground text-sm">({gym.totalReviews || 0} reviews)</span>
+              {(gym.totalReviews ?? 0) > 0 ? (
+                <>
+                  <Star className="h-4 w-4 text-warning fill-warning" />
+                  <span className="font-bold">{(Number(gym.averageRating) || 0).toFixed(1)}</span>
+                  <span className="text-muted-foreground text-sm">({gym.totalReviews} reviews)</span>
+                </>
+              ) : (
+                <span className="font-bold text-primary">New</span>
+              )}
             </div>
             {branches.length > 0 && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -534,8 +540,14 @@ export default function GymDetailPage() {
               <div>
                 <h2 className="text-xl font-bold">Member Reviews</h2>
                 <div className="flex items-center gap-2 mt-1">
-                  <StarRating rating={gym.averageRating} showValue />
-                  <span className="text-sm text-muted-foreground">({gym.totalReviews || 0} reviews)</span>
+                  {(gym.totalReviews ?? 0) > 0 ? (
+                    <>
+                      <StarRating rating={gym.averageRating} showValue />
+                      <span className="text-sm text-muted-foreground">({gym.totalReviews} reviews)</span>
+                    </>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">No reviews yet</span>
+                  )}
                 </div>
               </div>
               <Button onClick={() => {
@@ -602,18 +614,18 @@ export default function GymDetailPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Monthly Price</span>
-                  <span className="font-medium text-primary">{formatCurrency(Number(selectedPlan.price))}</span>
+                  <span className="font-medium text-primary">{formatCurrency(Number(selectedPlan.price), selectedPlan.currency)}</span>
                 </div>
                 {Number(selectedPlan.joiningFee) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Joining Fee</span>
-                    <span className="font-medium">{formatCurrency(Number(selectedPlan.joiningFee))}</span>
+                    <span className="font-medium">{formatCurrency(Number(selectedPlan.joiningFee), selectedPlan.currency)}</span>
                   </div>
                 )}
                 {Number((selectedPlan as any).securityFee) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Security Fee</span>
-                    <span className="font-medium">{formatCurrency(Number((selectedPlan as any).securityFee))}</span>
+                    <span className="font-medium">{formatCurrency(Number((selectedPlan as any).securityFee), selectedPlan.currency)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
@@ -623,7 +635,7 @@ export default function GymDetailPage() {
                 <div className="border-t pt-3 flex justify-between font-semibold">
                   <span>Total Due Today</span>
                   <span className="text-primary text-lg">
-                    {formatCurrency(Number(selectedPlan.price) + Number(selectedPlan.joiningFee) + Number((selectedPlan as any).securityFee ?? 0))}
+                    {formatCurrency(Number(selectedPlan.price) + Number(selectedPlan.joiningFee) + Number((selectedPlan as any).securityFee ?? 0), selectedPlan.currency)}
                   </span>
                 </div>
               </div>

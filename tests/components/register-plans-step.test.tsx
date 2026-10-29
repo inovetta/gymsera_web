@@ -26,8 +26,9 @@ vi.mock('@/lib/api/billing-plans', () => ({
     createCheckoutSession: vi.fn(),
   },
 }))
-vi.mock('@/lib/api/discovery', () => ({
-  discoveryApi: { getCities: vi.fn().mockResolvedValue({ data: { cities: [{ id: 1, name: 'Lahore' }] } }) },
+// Phase 7 P6 (BUG-26): registration reads every active city from GET /cities.
+vi.mock('@/lib/api/cities', () => ({
+  citiesApi: { getAll: vi.fn().mockResolvedValue({ data: [{ id: 1, name: 'Lahore' }] }) },
 }))
 vi.mock('@/lib/api/packages', () => ({
   packagesApi: { getPackages: vi.fn().mockResolvedValue({ data: [] }) },
