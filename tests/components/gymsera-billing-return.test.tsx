@@ -65,8 +65,8 @@ describe('GymsEra billing — Thin Stripe return (BILL-14 & UX-02)', () => {
     nav.searchParams = new URLSearchParams('checkout=success')
     renderPage()
 
-    // Must show no subscription found / no session provided
-    await screen.findByText(/no gymsera subscription found/i)
+    // No session provided: nothing to confirm (P9: it no longer claims the host has no subscription)
+    await screen.findByText(/no payment to confirm/i)
     expect(screen.queryByText(/payment confirmed/i)).not.toBeInTheDocument()
     expect(successToastShown()).toBe(false)
     expect(api.getCheckoutSessionStatus).not.toHaveBeenCalled()
@@ -133,7 +133,9 @@ describe('GymsEra billing — Thin Stripe return (BILL-14 & UX-02)', () => {
     renderPage()
 
     expect(await screen.findByText(/payment confirmed/i)).toBeInTheDocument()
-    expect(await screen.findByText(/cms url is not configured/i)).toBeInTheDocument()
+    // P9: plain words, no setting name on screen
+    expect(await screen.findByText(/open the gymsera cms to see and manage your plan/i)).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/NEXT_PUBLIC/)
     expect(window.location.href).toBe('')
   })
 })

@@ -1,3 +1,5 @@
+import { formatDate } from '@/lib/utils'
+
 /**
  * What `GET /host/subscription/current` says is wrong with the plan, as plain notices (NEW-21, NEW-32).
  * The server decides every fact here (`paymentIssue`, `overQuotaCount`, the grace days, `duplicateBilling`);
@@ -28,9 +30,58 @@ const storeName = (platform?: string | null) =>
 /** Only a real https link is ever offered as an action. */
 const safeUrl = (u: unknown): string | undefined => (typeof u === 'string' && /^https:\/\//i.test(u) ? u : undefined)
 
+const lapseStore = (provider: string) =>
+  ({ IOS: 'the App Store', ANDROID: 'Google Play', STRIPE: 'your card provider' } as Record<string, string>)[provider] ?? 'the payment provider'
+const day = (v: unknown) => (typeof v === 'string' && v ? formatDate(v) : null)
+
+/**
+ * NEW-180 (P9): a plan that no longer entitles, from the API's `lapse` block (P7c, R-82), in the mobile
+ * wording (my_subscription_screen.dart _LapsedPlanCard / _LapsedActions). One notice; never the
+ * over-quota countdown. Buying a plan again happens in the GymsEra app or by bank transfer (CMS).
+ */
+function lapseNotice(sub: Sub): BillingNotice | null {
+  const lapse = sub.lapse
+  if (!lapse || typeof lapse !== 'object') return null
+  const reason = String(lapse.reason || 'expired')
+  const provider = String(lapse.provider || sub.platform || '').toUpperCase()
+  const store = lapseStore(provider)
+  const ended = day(sub.endDate)
+  const lockDate = day(lapse.branchesLockAt)
+  const title = ({ on_hold: 'On hold', refunded: 'Refunded', paused: 'Paused' } as Record<string, string>)[reason] ?? 'Plan ended'
+  const what =
+    reason === 'on_hold'
+      ? `${store[0].toUpperCase()}${store.slice(1)} couldn't take your renewal payment, so your plan is on hold.`
+      : reason === 'refunded'
+        ? 'This plan was refunded, so it no longer covers your branches.'
+        : reason === 'paused'
+          ? 'You paused this plan in Google Play.'
+          : ended
+            ? `Your plan ended on ${ended}.`
+            : 'Your plan has ended.'
+  const branchesLine =
+    lapse.inGrace === true && lockDate
+      ? `Your branches stay open until ${lockDate}. After that they're locked: no new members, sales or plans, and members can still check in for 7 more days.`
+      : 'Your branches are locked: no new members, sales or plans. Members can check in for 7 days after the lock.'
+  const url = safeUrl(lapse.manageUrl)
+  const storeLabel = provider === 'IOS' ? 'App Store' : 'Google Play'
+  const fix =
+    url && (provider === 'IOS' || provider === 'ANDROID')
+      ? reason === 'on_hold' ? `Fix payment in ${storeLabel}` : reason === 'paused' ? `Resume in ${storeLabel}` : null
+      : null
+  return {
+    title,
+    message: `${what} ${branchesLine}`,
+    severity: 'critical',
+    ...(fix && url ? { actionLabel: fix, actionUrl: url } : {}),
+  }
+}
+
 export function billingNoticesFrom(sub: Sub, opts: { activeBranches?: number } = {}): BillingNotice[] {
-  // NEW-180: a plan that does not entitle (P7c lapse) has no notices here until P9 builds its view.
-  if (sub.entitled === false) return []
+  // NEW-180: a plan that does not entitle (P7c lapse) gets the lapse notice only.
+  if (sub.entitled === false) {
+    const notice = lapseNotice(sub)
+    return notice ? [notice] : []
+  }
   const notices: BillingNotice[] = []
 
   // NEW-19: a smaller plan is scheduled and covers fewer branches than are active, and no choice was saved.
