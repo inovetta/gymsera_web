@@ -52,7 +52,8 @@ test.describe('Web smoke suite', () => {
     });
 
     await page.goto('/gymsera-billing');
-    await expect(page.getByText('No GymsEra subscription found')).toBeVisible();
+    // P9 (NEW-180): with no checkout to confirm it says so, not that the host has no subscription.
+    await expect(page.getByText('No payment to confirm')).toBeVisible();
     await expect(page.getByRole('link', { name: /cms billing/i })).toBeVisible();
   });
 });
