@@ -133,7 +133,7 @@ export default function ContactSupportPage() {
             </div>
             <div className="mt-6">
               <a
-                href="mailto:support@gymsera.com?subject=Gymsera%20Support%20Request"
+                href="mailto:support@gymsera.com?subject=GymsEra%20Support%20Request"
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition-colors shadow-sm"
               >
                 <Mail className="w-4 h-4" />
