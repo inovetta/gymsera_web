@@ -150,6 +150,7 @@ export function LocationPicker({
             role="combobox"
             aria-label={label}
             aria-expanded={showList}
+            aria-controls={`${inputId}-list`}
             aria-autocomplete="list"
             autoComplete="off"
             placeholder={placeholder}
@@ -167,7 +168,7 @@ export function LocationPicker({
           />
           {loading && <Loader2 aria-label="Searching" className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
           {showList && (
-            <ul role="listbox" className="absolute z-50 mt-1 w-full rounded-lg border bg-popover p-1 shadow-md">
+            <ul id={`${inputId}-list`} role="listbox" className="absolute z-50 mt-1 w-full rounded-lg border bg-popover p-1 shadow-md">
               {suggestions.map((s) => (
                 <li key={s.placeId} role="option" aria-selected={false}>
                   <button
