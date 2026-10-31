@@ -100,9 +100,10 @@ export default function GymsEraBillingPage() {
               <div className="flex items-start gap-3 rounded-xl bg-muted/60 p-4 text-sm">
                 <AlertTriangle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-foreground">No GymsEra subscription found</p>
+                  {/* NEW-180 (P9): this says nothing about the plan (a lapsed or active host lands here too). */}
+                  <p className="font-semibold text-foreground">No payment to confirm</p>
                   <p className="text-muted-foreground mt-0.5">
-                    No checkout session was provided to verify. To manage your GymsEra plan, visit the CMS billing page.
+                    This page confirms a card payment after checkout. Your GymsEra plan is on the CMS billing page.
                   </p>
                 </div>
               </div>
@@ -117,7 +118,7 @@ export default function GymsEraBillingPage() {
                 </a>
               ) : (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
-                  CMS URL is not configured. Please set NEXT_PUBLIC_CMS_URL.
+                  Open the GymsEra CMS to see and manage your plan.
                 </div>
               )}
             </div>
@@ -162,7 +163,7 @@ export default function GymsEraBillingPage() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
-                  CMS URL is not configured. Please set NEXT_PUBLIC_CMS_URL.
+                  Open the GymsEra CMS to see and manage your plan.
                 </div>
               )}
             </div>

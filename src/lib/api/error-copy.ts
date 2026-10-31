@@ -21,10 +21,23 @@ export const ERROR_COPY_FALLBACK: Record<string, ErrorCopyEntry> = {
     ar: 'حسابك تجاوز الحصة المسموح بها من الفروع. قم بترقية خطتك لإضافة فروع إضافية.',
     action: 'open_upsell',
   },
+  // P5b (R-81) and P9: the API's own copy (gymsera_be src/constants/error-copy.js).
   last_branch_in_organization: {
-    en: 'An organization must have at least one branch. You cannot delete the only branch.',
-    ur: 'کسی تنظیم میں کم از کم ایک برانچ کا ہونا ضروری ہے۔ آپ واحد برانچ کو حذف نہیں کر سکتے۔',
-    ar: 'يجب أن تحتوي المنظمة على فرع واحد على الأقل. لا يمكنك حذف الفرع الوحيد.',
+    en: 'This is the last branch in its organization. Deleting it also deletes the organization.',
+    ur: 'یہ اس تنظیم کی آخری برانچ ہے۔ اسے حذف کرنے سے تنظیم بھی حذف ہو جائے گی۔',
+    ar: 'هذا هو آخر فرع في منظمته. حذفه يحذف المنظمة أيضًا.',
+    action: 'none',
+  },
+  last_visible_plan: {
+    en: 'Travellers must always see at least one plan at each branch. Show another plan first, then hide this one.',
+    ur: 'مسافروں کو ہر برانچ میں کم از کم ایک پلان نظر آنا ضروری ہے۔ پہلے کوئی اور پلان دکھائیں، پھر اسے چھپائیں۔',
+    ar: 'يجب أن يرى المسافرون خطة واحدة على الأقل في كل فرع. اعرض خطة أخرى أولاً، ثم أخفِ هذه الخطة.',
+    action: 'none',
+  },
+  visible_plan_required: {
+    en: 'Turn on "Show to Travellers" for at least one plan, then try again.',
+    ur: 'کم از کم ایک پلان کے لیے "مسافروں کو دکھائیں" آن کریں، پھر دوبارہ کوشش کریں۔',
+    ar: 'فعّل "إظهار للمسافرين" لخطة واحدة على الأقل، ثم حاول مرة أخرى.',
     action: 'none',
   },
   iap_subscription_active: {

@@ -14,6 +14,8 @@ export interface MainBranchData {
   address?: string
   latitude?: number
   longitude?: number
+  /** NEW-140: the Google place the address was picked from (provisioning stores it as googlePlaceId). */
+  placeId?: string | null
   phone?: string | null
   openingTime?: string | null
   closingTime?: string | null

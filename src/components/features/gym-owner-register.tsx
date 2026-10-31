@@ -201,6 +201,9 @@ export function GymOwnerRegister({
   // Gym profile — location
   const [gymAddress, setGymAddress] = useState('')
   const [gymLocation, setGymLocation] = useState<LatLng | null>(null)
+  // NEW-140: the Google place each address was picked from (sent as the main branch's placeId).
+  const [gymPlaceId, setGymPlaceId] = useState<string | null>(null)
+  const [branchPlaceId, setBranchPlaceId] = useState<string | null>(null)
 
   // Main branch
   const [isMainBranch, setIsMainBranch] = useState(true)
@@ -391,6 +394,7 @@ export function GymOwnerRegister({
         address: isMainBranch ? gymAddress : branchAddress,
         latitude: isMainBranch ? gymLocation?.lat : branchLocation?.lat,
         longitude: isMainBranch ? gymLocation?.lng : branchLocation?.lng,
+        placeId: (isMainBranch ? gymPlaceId : branchPlaceId) || null,
         phone: isMainBranch ? (branchPhone || null) : (branchBPhone || null),
         openingTime: isMainBranch ? (openingTime || null) : (branchOpeningTime || null),
         closingTime: isMainBranch ? (closingTime || null) : (branchClosingTime || null),
@@ -985,6 +989,9 @@ export function GymOwnerRegister({
                       address={gymAddress}
                       onLocationChange={setGymLocation}
                       onAddressChange={setGymAddress}
+                      onPlaceChange={setGymPlaceId}
+                      cityId={tenant?.cityId ?? null}
+                      label="Gym address"
                       height="260px"
                       placeholder="Search for your gym address…"
                       mapId="gym-location-picker"
@@ -1068,6 +1075,9 @@ export function GymOwnerRegister({
                             address={branchAddress}
                             onLocationChange={setBranchLocation}
                             onAddressChange={setBranchAddress}
+                            onPlaceChange={setBranchPlaceId}
+                            cityId={tenant?.cityId ?? null}
+                            label="Branch address"
                             height="220px"
                             placeholder="Search for branch address…"
                             mapId="branch-location-picker"
