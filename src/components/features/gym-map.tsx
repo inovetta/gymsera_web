@@ -9,13 +9,14 @@ interface GymMapProps {
   className?: string
 }
 
+// The web key (Maps JavaScript API only) draws the map; no place search runs in the browser (NEW-140).
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
 
 export function GymMap({ latitude, longitude, title, className }: GymMapProps) {
   if (!API_KEY) {
     return (
       <div className={`flex items-center justify-center bg-muted rounded-xl text-sm text-muted-foreground ${className ?? 'h-64'}`}>
-        Map unavailable — set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+        The map is not available here.
       </div>
     )
   }
