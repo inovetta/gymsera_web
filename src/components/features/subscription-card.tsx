@@ -70,14 +70,24 @@ export function SubscriptionCard({ subscription, onFreeze, onCancel, onRenew, on
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Start Date</p>
-            <p className="text-sm font-medium">{formatDate(subscription.startDate)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">End Date</p>
-            <p className="text-sm font-medium">{formatDate(subscription.endDate)}</p>
-          </div>
+          {/* BUG-31: a pending request starts on the day the host approves it (app P7a). */}
+          {status.startsWith('PENDING') ? (
+            <div className="col-span-2">
+              <p className="text-xs text-muted-foreground">Dates</p>
+              <p className="text-sm font-medium">Starts when the host approves</p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <p className="text-xs text-muted-foreground">Start Date</p>
+                <p className="text-sm font-medium">{formatDate(subscription.startDate)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">End Date</p>
+                <p className="text-sm font-medium">{formatDate(subscription.endDate)}</p>
+              </div>
+            </>
+          )}
           {isActive && (
             <div>
               <p className="text-xs text-muted-foreground">Days Remaining</p>
