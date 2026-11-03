@@ -196,8 +196,16 @@ export default function SubscriptionDetailPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { label: 'Start Date', value: formatDate(sub.startDate) },
-                  { label: 'End Date', value: formatDate(sub.endDate) },
+                  // BUG-31: a request starts on the day the host approves it; its dates are only an estimate (app P7a).
+                  ...(isPending
+                    ? [{ label: 'Dates', value: 'Starts when the host approves' }]
+                    : [
+                        { label: 'Start Date', value: formatDate(sub.startDate) },
+                        { label: 'End Date', value: formatDate(sub.endDate) },
+                      ]),
+                  ...((sub as any).pendingChangeEffectiveDate && ((sub as any).pendingPlanId || (sub as any).pendingPlan)
+                    ? [{ label: 'Scheduled change', value: `Your plan changes on ${formatDate((sub as any).pendingChangeEffectiveDate)}` }]
+                    : []),
                   ...(isActive ? [{ label: 'Days Left', value: `${daysLeft} days` }] : []),
                   ...(plan ? [{ label: 'Duration', value: formatDuration(plan.durationType, plan.durationValue) }] : []),
                   ...(sub.remainingVisits !== undefined ? [{ label: 'Visits Left', value: String(sub.remainingVisits) }] : []),

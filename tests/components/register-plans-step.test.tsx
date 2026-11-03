@@ -1,6 +1,7 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { fakePlaces, pickPlace } from '../helpers/places'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 vi.mock('next/navigation', () => ({
@@ -26,9 +27,9 @@ vi.mock('@/lib/api/billing-plans', () => ({
     createCheckoutSession: vi.fn(),
   },
 }))
-// Phase 7 P6 (BUG-26): registration reads every active city from GET /cities.
+// Phase 7 P9b (NEW-192): the registration city is picked through our /places API (helpers/places.ts).
 vi.mock('@/lib/api/cities', () => ({
-  citiesApi: { getAll: vi.fn().mockResolvedValue({ data: [{ id: 1, name: 'Lahore' }] }) },
+  citiesApi: { getAll: vi.fn().mockResolvedValue({ data: [] }) },
 }))
 vi.mock('@/lib/api/packages', () => ({
   packagesApi: { getPackages: vi.fn().mockResolvedValue({ data: [] }) },
@@ -89,7 +90,8 @@ async function toPlansStep() {
   await user.type(screen.getByPlaceholderText('e.g. Fitness Plus Pvt Ltd'), 'Iron Paradise Ltd')
   await user.type(screen.getByPlaceholderText('info@yourcompany.com'), 'owner@example.com')
   await user.type(screen.getByPlaceholderText('+92 300 1234567'), '03001234567')
-  await user.click(await screen.findByRole('button', { name: 'Lahore' }))
+  fakePlaces()
+  await pickPlace('City', 'Lah', /Lahore/)
   await user.click(screen.getByRole('button', { name: /Continue to Gym Profile/ }))
 
   await user.type(await screen.findByPlaceholderText('e.g. Iron Paradise Gym'), 'Iron Paradise')

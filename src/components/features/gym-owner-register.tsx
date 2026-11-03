@@ -24,7 +24,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LocationPicker, LatLng } from '@/components/features/location-picker'
 import { authApi } from '@/lib/api/auth'
-import { citiesApi } from '@/lib/api/cities'
+import { PlaceSearch } from '@/components/features/places/place-search'
 import { tenantsApi } from '@/lib/api/tenants'
 import { packagesApi } from '@/lib/api/packages'
 import { billingPlansApi } from '@/lib/api/billing-plans'
@@ -58,7 +58,8 @@ const businessSchema = z.object({
   businessName: z.string().min(2, 'Business name required'),
   email: z.string().email('Invalid email'),
   phone: z.string().min(10, 'Phone number required'),
-  cityId: z.string().min(1, 'City required'),
+  // NEW-192: our city id from the Places pick (GET /places/details upserts it), never typed text.
+  cityId: z.string().min(1, 'Pick your city from the list.'),
 })
 
 const gymProfileSchema = z.object({
@@ -244,11 +245,8 @@ export function GymOwnerRegister({
     return () => clearInterval(timer)
   }, [step])
 
-  // Every active city (GET /cities), not the traveller list of cities with a live gym (BUG-26).
-  const { data: citiesData } = useQuery({
-    queryKey: ['all-cities'],
-    queryFn: () => citiesApi.getAll(),
-  })
+  // NEW-192: the city is searched on our /places API (as the app, P3); the picked name is shown.
+  const [cityName, setCityName] = useState('')
 
   const { data: packagesData, isLoading: packagesLoading } = useQuery({
     queryKey: ['packages'],
@@ -273,7 +271,6 @@ export function GymOwnerRegister({
   })
 
   const bankInstructions = bankInstructionsData?.data
-  const cities = citiesData?.data || []
   const packages = packagesData?.data?.filter((p) => p.status === 'ACTIVE') || []
   const billingPlans = billingPlansData?.data?.plans || []
   // The BillingPlan tier matching the legacy package's branch count — picked
@@ -842,17 +839,18 @@ export function GymOwnerRegister({
                     </div>
                   </div>
                   <div>
-                    <Label className="mb-2 block">City</Label>
-                    <Select onValueChange={(v) => businessForm.setValue('cityId', v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your city" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cities.map((city) => (
-                          <SelectItem key={city.id} value={String(city.id)}>{city.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <PlaceSearch
+                      label="City"
+                      kind="city"
+                      value={cityName}
+                      placeholder="Search your city"
+                      onTextChange={() => businessForm.setValue('cityId', '')}
+                      onPick={(place) => {
+                        if (!place.city) return
+                        setCityName(place.city.name)
+                        businessForm.setValue('cityId', String(place.city.id), { shouldValidate: true })
+                      }}
+                    />
                     {businessForm.formState.errors.cityId && (
                       <p className="text-xs text-destructive mt-1">{businessForm.formState.errors.cityId.message}</p>
                     )}

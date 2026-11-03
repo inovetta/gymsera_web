@@ -5,7 +5,7 @@
 // the real review count, and the price the API sends (minPrice) in the listing's currency.
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const api = vi.hoisted(() => ({ get: vi.fn() }))
@@ -55,16 +55,28 @@ const respond = (routes: Record<string, unknown>) =>
     return { data: { success: true, data: routes[url] } }
   })
 
-describe('BUG-26: owner registration lists every active city', () => {
-  it('reads GET /cities, not the traveller list of live cities', async () => {
-    respond({ '/cities': [{ id: 9, name: 'Newtown' }], '/discovery/cities': { cities: [] } })
+// P9b (NEW-192): the registration city is now searched on our /places API (as the app, P3), which
+// upserts any real city; BUG-26's guard stays: a city with no live gym can still be chosen, so the
+// traveller list of live cities is never what registration reads.
+describe('BUG-26: owner registration can choose a city with no live gym', () => {
+  it('finds the city through /places, never the traveller list of live cities', async () => {
+    respond({
+      '/places/autocomplete': { suggestions: [{ placeId: 'city-newtown', primaryText: 'Newtown', secondaryText: 'Pakistan' }] },
+      '/places/details/city-newtown': { placeId: 'city-newtown', formattedAddress: 'Newtown', latitude: 30, longitude: 70, city: { id: 9, name: 'Newtown' }, area: null },
+      '/discovery/cities': { cities: [] },
+    })
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
         <GymOwnerRegister />
       </QueryClientProvider>
     )
-    expect(await screen.findByText('Newtown')).toBeInTheDocument()
+    const city = await screen.findByLabelText('City')
+    fireEvent.focus(city)
+    fireEvent.change(city, { target: { value: 'New' } })
+    fireEvent.click(await screen.findByRole('button', { name: /Newtown/ }))
+    await waitFor(() => expect((city as HTMLInputElement).value).toBe('Newtown'))
     expect(api.get).not.toHaveBeenCalledWith('/discovery/cities')
+    expect(api.get).not.toHaveBeenCalledWith('/discovery/cities', expect.anything())
   })
 })
 
