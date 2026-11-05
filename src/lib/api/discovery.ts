@@ -1,4 +1,16 @@
 import apiClient from './client'
+
+/** The gym's payment details, as the API and the app (HostPaymentDetails) name them. */
+export interface HostPaymentDetails {
+  bankName?: string | null
+  accountTitle?: string | null
+  accountNumber?: string | null
+  iban?: string | null
+  branchCode?: string | null
+  jazzCashNumber?: string | null
+  easyPaisaNumber?: string | null
+  additionalInstructions?: string | null
+}
 import { ApiResponse, City, GymListing, GymReview } from '@/types'
 
 function normalizeGym(raw: any): GymListing {
@@ -74,6 +86,12 @@ export const discoveryApi = {
     const { data } = await apiClient.get('/discovery/gyms', { params })
     if (data?.data?.gyms) data.data.gyms = data.data.gyms.map(normalizeGym)
     return data
+  },
+
+  /** The gym's own bank / wallet details for a traveller's transfer (null = none added). Same call as the app. */
+  getPaymentDetails: async (gymListingId: string): Promise<HostPaymentDetails | null> => {
+    const { data } = await apiClient.get(`/discovery/gyms/${gymListingId}/payment-details`)
+    return (data?.data?.paymentDetails as HostPaymentDetails | null | undefined) ?? null
   },
 
   getGym: async (id: string): Promise<ApiResponse<GymListing>> => {
