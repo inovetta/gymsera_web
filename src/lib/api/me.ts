@@ -37,7 +37,8 @@ export interface GetStatementParams {
 
 export interface SubmitPaymentRequestPayload {
   subscriptionId: string
-  amount: number
+  /** Ignored by the server (it prices the payment, FLOW-08); not sent by the subscribe flow. */
+  amount?: number
   method: string
   notes?: string
 }

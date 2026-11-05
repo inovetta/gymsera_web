@@ -7,7 +7,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   MapPin, Phone, Mail, Clock, Star, Users, ChevronLeft, ChevronRight, MessageSquare,
-  CheckCircle, Calendar, Loader2, Building2, ImageIcon, Shield, Search, ArrowRight,
+  CheckCircle, Loader2, Building2, ImageIcon, Shield, Search, ArrowRight,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -23,12 +23,11 @@ import { StarRating } from '@/components/features/star-rating'
 import { EmptyState } from '@/components/features/empty-state'
 import { ErrorState, statusOf } from '@/components/features/error-state'
 import { GymMap } from '@/components/features/gym-map'
+import { SubscribeFlowDialog } from '@/components/features/subscribe-flow-dialog'
 import { discoveryApi } from '@/lib/api/discovery'
-import { subscriptionsApi } from '@/lib/api/subscriptions'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
 import { MembershipPlan, Branch } from '@/types'
-import { formatCurrency, formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
 export default function GymDetailPage() {
@@ -63,22 +62,6 @@ export default function GymDetailPage() {
     enabled: !!id,
   })
 
-  const subscribeMutation = useMutation({
-    mutationFn: () =>
-      subscriptionsApi.createSubscription({
-        planId: selectedPlan!.id,
-        gymListingId: id,
-        branchId: selectedBranch!.id,
-      }),
-    onSuccess: () => {
-      toast({ title: 'Subscribed!', description: 'Your membership has been activated.', variant: 'success' })
-      setShowSubscribeDialog(false)
-      router.push('/subscriptions')
-    },
-    onError: (err: any) => {
-      toast({ title: 'Error', description: err?.response?.data?.message ?? 'Failed to create subscription.', variant: 'destructive' })
-    },
-  })
 
   const reviewMutation = useMutation({
     mutationFn: () =>
@@ -577,79 +560,14 @@ export default function GymDetailPage() {
         </Tabs>
       </div>
 
-      {/* ── Subscribe Confirmation Dialog ── */}
-      <Dialog open={showSubscribeDialog} onOpenChange={setShowSubscribeDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirm Subscription</DialogTitle>
-          </DialogHeader>
-
-          {selectedPlan && selectedBranch && (
-            <div className="space-y-4 py-2">
-              {/* Branch card */}
-              <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl px-4 py-3">
-                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-bold text-primary">{selectedBranch.branchName.charAt(0)}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold">{selectedBranch.branchName}</p>
-                  {selectedBranch.address && (
-                    <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
-                      <MapPin className="h-3 w-3 shrink-0" />{selectedBranch.address}
-                    </p>
-                  )}
-                </div>
-                <Badge variant="outline" className="text-success border-success/30 bg-success/10 shrink-0 text-xs">Selected</Badge>
-              </div>
-
-              {/* Plan summary */}
-              <div className="bg-muted rounded-xl p-4 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Plan</span>
-                  <span className="font-medium">{selectedPlan.name}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Duration</span>
-                  <span className="font-medium capitalize">{selectedPlan.durationValue} {selectedPlan.durationType.toLowerCase()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Monthly Price</span>
-                  <span className="font-medium text-primary">{formatCurrency(Number(selectedPlan.price), selectedPlan.currency)}</span>
-                </div>
-                {Number(selectedPlan.joiningFee) > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Joining Fee</span>
-                    <span className="font-medium">{formatCurrency(Number(selectedPlan.joiningFee), selectedPlan.currency)}</span>
-                  </div>
-                )}
-                {Number((selectedPlan as any).securityFee) > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Security Fee</span>
-                    <span className="font-medium">{formatCurrency(Number((selectedPlan as any).securityFee), selectedPlan.currency)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Start Date</span>
-                  <span className="font-medium flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{formatDate(new Date())}</span>
-                </div>
-                <div className="border-t pt-3 flex justify-between font-semibold">
-                  <span>Total Due Today</span>
-                  <span className="text-primary text-lg">
-                    {formatCurrency(Number(selectedPlan.price) + Number(selectedPlan.joiningFee) + Number((selectedPlan as any).securityFee ?? 0), selectedPlan.currency)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSubscribeDialog(false)}>Cancel</Button>
-            <Button loading={subscribeMutation.isPending} onClick={() => subscribeMutation.mutate()}>
-              Confirm Subscription
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* ── Subscribe: review → the gym's bank details + receipt → awaiting approval (P9c B, as the app) ── */}
+      <SubscribeFlowDialog
+        open={showSubscribeDialog}
+        onOpenChange={setShowSubscribeDialog}
+        plan={selectedPlan}
+        branch={selectedBranch}
+        gymListingId={id}
+      />
 
       {/* ── Review Dialog ── */}
       <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
