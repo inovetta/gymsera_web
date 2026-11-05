@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import Image from 'next/image'
@@ -35,6 +35,9 @@ export default function BranchDetailPage() {
   const [imgIdx, setImgIdx] = useState(0)
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null)
   const [showSubscribeDialog, setShowSubscribeDialog] = useState(false)
+  // P9c (C): a map that cannot load is hidden, never shown as Google's error box.
+  const [mapUnavailable, setMapUnavailable] = useState(false)
+  const hideMap = useCallback(() => setMapUnavailable(true), [])
 
   const { data: gymData, isLoading, error: gymError, refetch: refetchGym } = useQuery({
     queryKey: ['gym', gymId],
@@ -255,13 +258,13 @@ export default function BranchDetailPage() {
         </div>
 
         {/* Map */}
-        {hasMap && (
-          <div>
+        {hasMap && !mapUnavailable && (
+          <div data-testid="branch-map">
             <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
               <MapPin className="h-5 w-5 text-primary" /> Location
             </h2>
             <div className="rounded-2xl overflow-hidden border shadow-sm relative">
-              <GymMap latitude={lat} longitude={lng} title={branch.branchName} className="h-72" />
+              <GymMap latitude={lat} longitude={lng} title={branch.branchName} className="h-72" onUnavailable={hideMap} />
               <div className="absolute bottom-4 left-4 bg-white dark:bg-card border shadow-md rounded-xl px-4 py-2.5 flex items-center gap-2 text-sm font-medium">
                 <MapPin className="h-4 w-4 text-primary" />
                 {branch.branchName}
