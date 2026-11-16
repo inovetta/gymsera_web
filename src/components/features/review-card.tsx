@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { GymReview } from '@/types'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { StarRating } from './star-rating'
@@ -5,9 +6,11 @@ import { getInitials, formatRelativeTime } from '@/lib/utils'
 
 interface ReviewCardProps {
   review: GymReview
+  /** NEW-256: e.g. the Report button, under the review. */
+  action?: ReactNode
 }
 
-export function ReviewCard({ review }: ReviewCardProps) {
+export function ReviewCard({ review, action }: ReviewCardProps) {
   return (
     <div className="p-4 rounded-lg border bg-card">
       <div className="flex items-start gap-3 mb-3">
@@ -27,6 +30,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
       </div>
       {review.title && <h4 className="font-semibold text-sm mb-1">{review.title}</h4>}
       <p className="text-sm text-muted-foreground leading-relaxed">{review.body}</p>
+      {action && <div className="mt-2 flex justify-end">{action}</div>}
     </div>
   )
 }

@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { PlanCard } from '@/components/features/plan-card'
 import { ReviewCard } from '@/components/features/review-card'
+import { ReportReviewButton } from '@/components/features/report-review-button'
 import { StarRating } from '@/components/features/star-rating'
 import { EmptyState } from '@/components/features/empty-state'
 import { ErrorState, statusOf } from '@/components/features/error-state'
@@ -34,7 +35,7 @@ export default function GymDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -547,7 +548,23 @@ export default function GymDetailPage() {
               <EmptyState icon={MessageSquare} title="No reviews yet" description="Be the first to review this gym!" actionLabel="Write a Review" onAction={() => setShowReviewDialog(true)} />
             ) : (
               <div className="space-y-4">
-                {reviews.map((review) => <ReviewCard key={review.id} review={review} />)}
+                {reviews.map((review) => (
+                  <ReviewCard
+                    key={review.id}
+                    review={review}
+                    action={
+                      // NEW-256: report someone else's review (App Store 1.2, Google Play UGC).
+                      user?.id === review.userId ? undefined : (
+                        <ReportReviewButton
+                          reviewId={review.id}
+                          isAuthenticated={isAuthenticated}
+                          onSignInNeeded={() => router.push(`/auth/login?from=/gyms/${id}`)}
+                          onReported={() => queryClient.invalidateQueries({ queryKey: ['gym-reviews', id] })}
+                        />
+                      )
+                    }
+                  />
+                ))}
                 {reviewPagination && reviewPagination.totalPages > 1 && (
                   <div className="flex justify-center gap-2 mt-6">
                     <Button variant="outline" size="sm" disabled={reviewPage === 1} onClick={() => setReviewPage((p) => p - 1)}>Previous</Button>
