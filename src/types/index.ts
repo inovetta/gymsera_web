@@ -62,6 +62,8 @@ export interface Area {
 }
 
 export interface GymListing {
+  /** NEW-269 (R-112): tenants.business_name, shown as "by <brand>". */
+  brandName?: string | null
   id: string
   tenantId: string
   name: string

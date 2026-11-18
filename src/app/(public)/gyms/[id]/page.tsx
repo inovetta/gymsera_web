@@ -26,6 +26,7 @@ import { ErrorState, statusOf } from '@/components/features/error-state'
 import { GymMap } from '@/components/features/gym-map'
 import { SubscribeFlowDialog } from '@/components/features/subscribe-flow-dialog'
 import { discoveryApi } from '@/lib/api/discovery'
+import { BrandByline } from '@/components/features/brand-byline'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
 import { MembershipPlan, Branch } from '@/types'
@@ -200,6 +201,7 @@ export default function GymDetailPage() {
                 {gym.featured && <Badge className="bg-primary text-white">Featured</Badge>}
               </div>
               <h1 className="text-3xl font-bold text-white">{gym.name}</h1>
+              <BrandByline brand={gym.brandName} gymName={gym.name} />
               {gym.city && (
                 <div className="flex items-center gap-1 text-white/80 mt-1 text-sm">
                   <MapPin className="h-3.5 w-3.5" />

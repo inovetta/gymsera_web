@@ -29,6 +29,8 @@ function normalizeGym(raw: any): GymListing {
     currency: raw.currency,
     facilities: raw.facilities ?? Object.keys(facilitiesJson).filter((k) => facilitiesJson[k]),
     images: raw.images ?? raw.imagesJson ?? [],
+    // NEW-269 (R-112): the brand, from the gym detail's tenant.
+    brandName: raw.brandName ?? raw.tenant?.businessName ?? null,
   }
 }
 
