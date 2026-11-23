@@ -8,7 +8,7 @@ const walk = (dir: string): string[] =>
     return statSync(p).isDirectory() ? walk(p) : [p]
   })
 
-describe('dead tenant upload client methods are gone (backend has no /logo or /cover-image routes)', () => {
+describe('dead organization upload client methods are gone (backend has no /logo or /cover-image routes)', () => {
   it('no source file defines or calls uploadLogo / uploadCoverImage', () => {
     const offenders = walk(join(process.cwd(), 'src'))
       .filter((f) => /\.(ts|tsx)$/.test(f))
@@ -16,8 +16,8 @@ describe('dead tenant upload client methods are gone (backend has no /logo or /c
     expect(offenders).toEqual([])
   })
 
-  it('tenants.ts no longer posts to /logo or /cover-image', () => {
-    const src = readFileSync(join(process.cwd(), 'src/lib/api/tenants.ts'), 'utf8')
+  it('organizations.ts no longer posts to /logo or /cover-image', () => {
+    const src = readFileSync(join(process.cwd(), 'src/lib/api/organizations.ts'), 'utf8')
     expect(src).not.toMatch(/\/logo|\/cover-image/)
   })
 })

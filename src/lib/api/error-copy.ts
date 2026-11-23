@@ -130,13 +130,15 @@ export const ERROR_COPY_FALLBACK: Record<string, ErrorCopyEntry> = {
     ar: 'بعض المعلومات المدخلة غير صحيحة. يرجى المراجعة والتصحيح.',
     action: 'retry',
   },
-  tenant_not_active: {
+  // Contract v2 A1 G16: was `tenant_not_active`.
+  organization_not_active: {
     en: 'Your gym is not live yet. Finish setting it up to use this.',
     ur: 'آپ کا جم ابھی فعال نہیں ہوا۔ اسے استعمال کرنے کے لیے سیٹ اپ مکمل کریں۔',
     ar: 'ناديك الرياضي غير مفعّل بعد. أكمل إعداده لاستخدام هذه الميزة.',
     action: 'none',
   },
-  missing_tenant_context: {
+  // Contract v2 A1 G16: was `missing_tenant_context`.
+  missing_organization_context: {
     en: 'Choose a gym to continue.',
     ur: 'جاری رکھنے کے لیے ایک جم منتخب کریں۔',
     ar: 'اختر نادياً رياضياً للمتابعة.',
@@ -156,8 +158,9 @@ export const ERROR_COPY_FALLBACK: Record<string, ErrorCopyEntry> = {
     ar: 'لم تُحدَّد مدينة لهذا النادي بعد. حدّد المدينة ثم وافق عليه.',
     action: 'none',
   },
-  tenant_not_found: {
-    en: 'Tenant not found or not active.',
+  // Contract v2 §6: was `tenant_not_found`.
+  organization_not_found: {
+    en: 'Organization not found or not active.',
     ur: 'ادارہ نہیں ملا یا غیر فعال ہے۔',
     ar: 'المؤسسة غير موجودة أو غير نشطة.',
     action: 'none',

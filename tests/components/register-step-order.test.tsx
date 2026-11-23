@@ -12,15 +12,15 @@ vi.mock('next/navigation', () => ({
 }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }), toast: vi.fn() }))
 
-const mockTenants = vi.hoisted(() => ({
-  registerTenant: vi.fn(),
-  submitGymProfile: vi.fn(),
-  uploadOnboardingImages: vi.fn(),
-  replaceOnboardingImages: vi.fn(),
+const mockOrganizations = vi.hoisted(() => ({
+  register: vi.fn(),
+  submitFirstBusiness: vi.fn(),
+  uploadFirstBusinessImages: vi.fn(),
+  replaceFirstBusinessImages: vi.fn(),
   selectPackage: vi.fn(),
   finalizeApplication: vi.fn(),
 }))
-vi.mock('@/lib/api/tenants', () => ({ tenantsApi: mockTenants }))
+vi.mock('@/lib/api/organizations', () => ({ organizationsApi: mockOrganizations }))
 vi.mock('@/lib/api/billing-plans', () => ({
   billingPlansApi: {
     getPlans: vi.fn().mockResolvedValue({ data: { plans: [] } }),
@@ -83,15 +83,19 @@ describe('web signup: wizard order (business, details, location, photos, plans, 
   beforeEach(() => {
     vi.clearAllMocks()
     search.value = ''
-    mockTenants.registerTenant.mockResolvedValue({ data: { tenant: { id: 't1', cityId: 1 } } })
-    mockTenants.uploadOnboardingImages.mockResolvedValue({
+    mockOrganizations.register.mockResolvedValue({ data: { organization: { id: 't1', cityId: 1 } } })
+    mockOrganizations.uploadFirstBusinessImages.mockResolvedValue({
       data: { imagesJson: [1, 2, 3, 4, 5].map((n) => `https://cdn.test/${n}.jpg`) },
     })
   })
 
-  it('walks the screens in mobile order and sends no gym-profile until plans', async () => {
+  it('walks the screens in mobile order and sends no first-business until plans', async () => {
     renderWizard({ initialStep: 2 })
 
+    // Organization → Business → Branch (enterprise D8): step 2 is the organization, its name private.
+    expect(screen.getByRole('heading', { name: 'Your organization' })).toBeInTheDocument()
+    expect(screen.getByText('Organization name')).toBeInTheDocument()
+    expect(screen.getByText('Only you and GymsEra see this')).toBeInTheDocument()
     type(screen.getByPlaceholderText('e.g. Fitness Plus Pvt Ltd'), 'Iron Paradise Ltd')
     type(screen.getByPlaceholderText('info@yourcompany.com'), 'owner@example.com')
     type(screen.getByPlaceholderText('+92 300 1234567'), '03001234567')
@@ -100,7 +104,7 @@ describe('web signup: wizard order (business, details, location, photos, plans, 
     click(screen.getByRole('button', { name: /Continue to Gym Profile/ }))
 
     // 1. details
-    expect(await screen.findByRole('heading', { name: 'Gym Details' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Your first business' })).toBeInTheDocument()
     type(screen.getByPlaceholderText('e.g. Iron Paradise Gym'), 'Iron Paradise')
     type(screen.getByPlaceholderText(/Describe your gym/), 'A full service gym with strength and cardio floors.')
     click(screen.getByRole('button', { name: 'Mixed (Men & Women)' }))
@@ -120,12 +124,12 @@ describe('web signup: wizard order (business, details, location, photos, plans, 
       target: { files: [1, 2, 3, 4, 5].map((n) => new File(['x'], `${n}.jpg`, { type: 'image/jpeg' })) },
     })
     await waitFor(() => expect(screen.getByRole('button', { name: /Continue to Plans/ })).not.toBeDisabled())
-    expect(mockTenants.uploadOnboardingImages).toHaveBeenCalledWith('t1', expect.any(Array))
+    expect(mockOrganizations.uploadFirstBusinessImages).toHaveBeenCalledWith('t1', expect.any(Array))
     click(screen.getByRole('button', { name: /Continue to Plans/ }))
 
     // 4. plans
     expect(await screen.findByRole('heading', { name: 'Membership Plans' })).toBeInTheDocument()
-    expect(mockTenants.submitGymProfile).not.toHaveBeenCalled()
+    expect(mockOrganizations.submitFirstBusiness).not.toHaveBeenCalled()
 
     // Back from plans returns to photos with the uploaded photos still there.
     click(screen.getByRole('button', { name: /Back/ }))
@@ -136,7 +140,7 @@ describe('web signup: wizard order (business, details, location, photos, plans, 
   it('legacy ?step=3 lands on the first gym screen', async () => {
     search.value = 'step=3'
     renderWizard()
-    expect(await screen.findByRole('heading', { name: 'Gym Details' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Your first business' })).toBeInTheDocument()
   })
 
   it('legacy ?step= links keep their meaning (4 = package, 5 = payment)', async () => {

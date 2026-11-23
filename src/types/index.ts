@@ -1,6 +1,6 @@
 export type UserRole = 'MEMBER' | 'TRAINER' | 'BRANCH_MANAGER' | 'GYM_HOST' | 'PLATFORM_ADMIN'
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
-export type TenantStatus = 'PENDING_REVIEW' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'ACTIVE'
+export type OrganizationStatus = 'DRAFT' | 'PENDING_REVIEW' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'ACTIVE'
 export type SubscriptionStatus = 'PENDING' | 'ACTIVE' | 'FROZEN' | 'EXPIRED' | 'CANCELLED'
 export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED'
 export type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'CARD' | 'WALLET' | 'ONLINE' | 'POS'
@@ -32,14 +32,16 @@ export interface User {
   } | null
 }
 
-export interface Tenant {
+/** Contract v2 §3 Organization (host view). Never sent to travellers (D3). */
+export interface Organization {
   id: string
   userId: string
-  businessName: string
+  /** The organization's own name, private (was `businessName`). */
+  organizationName: string
   email: string
   phone: string
   cityId: number
-  status: TenantStatus
+  status: OrganizationStatus
   selectedPackageId?: string
   createdAt: string
   user?: User
@@ -61,11 +63,20 @@ export interface Area {
   name: string
 }
 
+/**
+ * What discovery sends for a branch card or a business (contract v2 §3 BranchCard / BusinessPublic).
+ * Travellers see business and branch names only, never the organization (D3, no byline).
+ * `id` is the branch id on a branch card and the business id on a business.
+ */
 export interface GymListing {
-  /** NEW-269 (R-112): tenants.business_name, shown as "by <brand>". */
-  brandName?: string | null
   id: string
-  tenantId: string
+  businessId?: string
+  /** "<Business> · <Branch>" on a branch card. */
+  displayName?: string
+  businessName?: string
+  branchName?: string
+  /** D11: the registration document was checked by GymsEra. Never affects visibility. */
+  businessVerified?: boolean
   name: string
   description?: string
   latitude?: number
@@ -95,7 +106,7 @@ export interface GymListing {
 
 export interface Branch {
   id: string
-  gymId: string
+  businessId: string
   branchName: string
   address: string
   cityId: number
@@ -114,7 +125,7 @@ export interface Branch {
 
 export interface MembershipPlan {
   id: string
-  gymId: string
+  businessId: string
   branchId?: string
   name: string
   description?: string
@@ -149,14 +160,14 @@ export interface MemberSubscription {
   freezeTo?: string
   sourceChannel?: string
   subscriptionId?: string
-  gymName?: string
+  businessName?: string
   planName?: string
-  tenantId?: string
-  gymListingId?: string
+  organizationId?: string
+  businessId?: string
   user?: User
   branch?: Branch
   membershipPlan?: MembershipPlan
-  gymListing?: GymListing
+  business?: GymListing
 }
 
 export interface AttendanceLog {
@@ -212,7 +223,7 @@ export interface Trainer {
 
 export interface GymReview {
   id: string
-  gymListingId: string
+  businessId: string
   userId: string
   rating: number
   title: string
@@ -220,7 +231,7 @@ export interface GymReview {
   status: ReviewStatus
   createdAt: string
   user?: User
-  gymListing?: GymListing
+  business?: GymListing
 }
 
 export interface PlatformPackage {

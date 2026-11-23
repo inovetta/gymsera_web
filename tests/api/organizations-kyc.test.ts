@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import apiClient from '@/lib/api/client'
-import { tenantsApi } from '@/lib/api/tenants'
+import { organizationsApi } from '@/lib/api/organizations'
 
 vi.mock('@/lib/api/client', () => ({
   default: {
@@ -9,7 +9,7 @@ vi.mock('@/lib/api/client', () => ({
   },
 }))
 
-describe('Web tenantsApi KYC document upload (SEC-10)', () => {
+describe('Web organizationsApi KYC document upload (SEC-10)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -32,11 +32,11 @@ describe('Web tenantsApi KYC document upload (SEC-10)', () => {
     const file1 = new File(['dummy content 1'], 'gym_license.pdf', { type: 'application/pdf' })
     const file2 = new File(['dummy content 2'], 'cnic_front.jpg', { type: 'image/jpeg' })
 
-    const res = await tenantsApi.uploadKycDocuments('tenant-xyz', [file1, file2], 'BUSINESS_REGISTRATION')
+    const res = await organizationsApi.uploadKycDocuments('tenant-xyz', [file1, file2], 'BUSINESS_REGISTRATION')
 
     expect(apiClient.post).toHaveBeenCalledTimes(1)
     const [url, formData, config] = vi.mocked(apiClient.post).mock.calls[0]
-    expect(url).toBe('/tenants/tenant-xyz/kyc-documents')
+    expect(url).toBe('/organizations/tenant-xyz/kyc-documents')
     expect(config?.headers?.['Content-Type']).toBe('multipart/form-data')
     expect(formData).toBeInstanceOf(FormData)
     expect((formData as FormData).get('documentType')).toBe('BUSINESS_REGISTRATION')

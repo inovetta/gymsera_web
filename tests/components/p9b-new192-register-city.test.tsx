@@ -17,11 +17,11 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/gym-owner/register',
 }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }), toast: vi.fn() }))
-const mockTenants = vi.hoisted(() => ({
-  registerTenant: vi.fn(), submitGymProfile: vi.fn(), uploadOnboardingImages: vi.fn(),
-  replaceOnboardingImages: vi.fn(), selectPackage: vi.fn(), finalizeApplication: vi.fn(),
+const mockOrganizations = vi.hoisted(() => ({
+  register: vi.fn(), submitFirstBusiness: vi.fn(), uploadFirstBusinessImages: vi.fn(),
+  replaceFirstBusinessImages: vi.fn(), selectPackage: vi.fn(), finalizeApplication: vi.fn(),
 }))
-vi.mock('@/lib/api/tenants', () => ({ tenantsApi: mockTenants }))
+vi.mock('@/lib/api/organizations', () => ({ organizationsApi: mockOrganizations }))
 vi.mock('@/lib/api/billing-plans', () => ({
   billingPlansApi: { getPlans: vi.fn().mockResolvedValue({ data: { plans: [] } }), getBankInstructions: vi.fn().mockResolvedValue({ data: {} }), createCheckoutSession: vi.fn() },
 }))
@@ -56,7 +56,7 @@ let places: ReturnType<typeof fakePlaces>
 beforeEach(() => {
   vi.clearAllMocks()
   places = fakePlaces()
-  mockTenants.registerTenant.mockResolvedValue({ data: { tenant: { id: 't1', cityId: 7 } } })
+  mockOrganizations.register.mockResolvedValue({ data: { organization: { id: 't1', cityId: 7 } } })
 })
 afterEach(() => vi.restoreAllMocks())
 
@@ -68,8 +68,8 @@ describe('NEW-192: the registration city comes from Places through our API', () 
     expect(places.autocomplete).toHaveBeenCalledWith(expect.objectContaining({ kind: 'city', input: 'Lah' }))
     expect(places.details).toHaveBeenCalledWith('city-lahore', expect.objectContaining({ kind: 'city' }))
     fireEvent.click(screen.getByRole('button', { name: /Continue to Gym Profile/ }))
-    await waitFor(() => expect(mockTenants.registerTenant).toHaveBeenCalledTimes(1))
-    expect(mockTenants.registerTenant.mock.calls[0][0]).toMatchObject({ cityId: 7 })
+    await waitFor(() => expect(mockOrganizations.register).toHaveBeenCalledTimes(1))
+    expect(mockOrganizations.register.mock.calls[0][0]).toMatchObject({ cityId: 7 })
   })
 
   it('does not read our own city list', async () => {
@@ -84,6 +84,6 @@ describe('NEW-192: the registration city comes from Places through our API', () 
     fireEvent.change(screen.getByLabelText('City'), { target: { value: 'Somewhere' } })
     fireEvent.click(screen.getByRole('button', { name: /Continue to Gym Profile/ }))
     expect(await screen.findByText(/pick your city from the list/i)).toBeInTheDocument()
-    expect(mockTenants.registerTenant).not.toHaveBeenCalled()
+    expect(mockOrganizations.register).not.toHaveBeenCalled()
   })
 })

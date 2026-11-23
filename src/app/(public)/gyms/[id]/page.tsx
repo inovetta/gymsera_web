@@ -26,7 +26,7 @@ import { ErrorState, statusOf } from '@/components/features/error-state'
 import { GymMap } from '@/components/features/gym-map'
 import { SubscribeFlowDialog } from '@/components/features/subscribe-flow-dialog'
 import { discoveryApi } from '@/lib/api/discovery'
-import { BrandByline } from '@/components/features/brand-byline'
+import { VerifiedCheck } from '@/components/features/verified-check'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
 import { MembershipPlan, Branch } from '@/types'
@@ -54,13 +54,13 @@ export default function GymDetailPage() {
 
   const { data: gymData, isLoading: gymLoading, error: gymError, refetch: refetchGym } = useQuery({
     queryKey: ['gym', id],
-    queryFn: () => discoveryApi.getGym(id),
+    queryFn: () => discoveryApi.getBusiness(id),
     enabled: !!id,
   })
 
   const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
     queryKey: ['gym-reviews', id, reviewPage],
-    queryFn: () => discoveryApi.getGymReviews(id, { page: reviewPage, limit: 10 }),
+    queryFn: () => discoveryApi.getBusinessReviews(id, { page: reviewPage, limit: 10 }),
     enabled: !!id,
   })
 
@@ -200,8 +200,10 @@ export default function GymDetailPage() {
                 </Badge>
                 {gym.featured && <Badge className="bg-primary text-white">Featured</Badge>}
               </div>
-              <h1 className="text-3xl font-bold text-white">{gym.name}</h1>
-              <BrandByline brand={gym.brandName} gymName={gym.name} />
+              <h1 className="flex items-center gap-2 text-3xl font-bold text-white">
+                {gym.name}
+                <VerifiedCheck verified={gym.businessVerified} className="inline-flex items-center text-white" />
+              </h1>
               {gym.city && (
                 <div className="flex items-center gap-1 text-white/80 mt-1 text-sm">
                   <MapPin className="h-3.5 w-3.5" />
@@ -585,7 +587,7 @@ export default function GymDetailPage() {
         onOpenChange={setShowSubscribeDialog}
         plan={selectedPlan}
         branch={selectedBranch}
-        gymListingId={id}
+        businessId={id}
       />
 
       {/* ── Review Dialog ── */}

@@ -18,7 +18,7 @@ vi.mock('next/navigation', () => ({
 }))
 vi.mock('next/image', () => ({ default: (p: any) => <img alt={p.alt} src={p.src} /> }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }), toast: vi.fn() }))
-vi.mock('@/lib/api/tenants', () => ({ tenantsApi: {} }))
+vi.mock('@/lib/api/organizations', () => ({ organizationsApi: {} }))
 vi.mock('@/lib/api/billing-plans', () => ({
   billingPlansApi: {
     getPlans: vi.fn().mockResolvedValue({ data: { plans: [] } }),
@@ -82,14 +82,14 @@ describe('BUG-26: owner registration can choose a city with no live gym', () => 
 
 describe('BUG-27 / NEW-145: listing card', () => {
   const cards = async (gyms: object[]) => {
-    respond({ '/discovery/gyms': { gyms } })
-    const res = await discoveryApi.getGyms()
-    return res.data.gyms
+    respond({ '/discovery/branches': { branches: gyms } })
+    const res = await discoveryApi.getBranches()
+    return res.data.branches
   }
-  const base = { tenantId: 't', status: 'ACTIVE', genderType: 'MIXED' }
+  const base = { organizationId: 't', businessId: 'biz', status: 'ACTIVE', genderType: 'MIXED' }
 
   it('no approved review: "New", no "0.0"', async () => {
-    const [gym] = await cards([{ ...base, id: 'a', title: 'heist', averageRating: 0, reviewCount: 0, minPrice: 2500, currency: 'PKR' }])
+    const [gym] = await cards([{ ...base, id: 'a', displayName: 'heist', averageRating: 0, reviewCount: 0, minPrice: 2500, currency: 'PKR' }])
     render(<GymCard gym={gym} />)
     expect(screen.getByText('New')).toBeInTheDocument()
     expect(screen.queryByText('0.0')).not.toBeInTheDocument()
@@ -97,7 +97,7 @@ describe('BUG-27 / NEW-145: listing card', () => {
   })
 
   it('approved reviews: value and count; price in the listing currency', async () => {
-    const [gym] = await cards([{ ...base, id: 'b', title: 'king · iron', averageRating: 4.5, reviewCount: 3, minPrice: 40, currency: 'USD' }])
+    const [gym] = await cards([{ ...base, id: 'b', displayName: 'king · iron', averageRating: 4.5, reviewCount: 3, minPrice: 40, currency: 'USD' }])
     render(<GymCard gym={gym} />)
     expect(screen.getByText('4.5')).toBeInTheDocument()
     expect(screen.getByText('(3)')).toBeInTheDocument()

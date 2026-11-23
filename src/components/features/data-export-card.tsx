@@ -8,8 +8,8 @@ import { ErrorState } from '@/components/features/error-state'
 import { meApi } from '@/lib/api/me'
 
 interface Unavailable {
-  tenantId: string
-  gymName?: string | null
+  organizationId: string
+  organizationName?: string | null
 }
 
 /** Saves `json` as a file in the browser. Replaced in tests. */
@@ -66,7 +66,7 @@ export function DataExportCard({ download = saveInBrowser, now = () => new Date(
         {error ? <ErrorState error={error} what="your data export" onRetry={run} compact /> : null}
         {unavailable.length > 0 ? (
           <div role="alert" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-            This file is incomplete. We could not read your data from: {unavailable.map((u) => u.gymName || u.tenantId).join(', ')}.
+            This file is incomplete. We could not read your data from: {unavailable.map((u) => u.organizationName || u.organizationId).join(', ')}.
             Try again later or contact support@gymsera.com.
           </div>
         ) : null}

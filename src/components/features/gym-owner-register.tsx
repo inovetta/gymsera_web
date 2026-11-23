@@ -25,7 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { LocationPicker, LatLng } from '@/components/features/location-picker'
 import { authApi } from '@/lib/api/auth'
 import { PlaceSearch } from '@/components/features/places/place-search'
-import { tenantsApi } from '@/lib/api/tenants'
+import { organizationsApi } from '@/lib/api/organizations'
 import { packagesApi } from '@/lib/api/packages'
 import { billingPlansApi } from '@/lib/api/billing-plans'
 import { RegisterPlansStep, PlanDraft, draftsToApiPlans } from '@/components/features/register-plans-step'
@@ -33,7 +33,7 @@ import { RegisterPhotosStep } from '@/components/features/register-photos-step'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
-import { Tenant, PlatformPackage } from '@/types'
+import { Organization, PlatformPackage } from '@/types'
 import { formatCurrency, cn, extractValidationErrorMessage, extractFieldErrors } from '@/lib/utils'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
@@ -54,23 +54,25 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password required'),
 })
 
-const businessSchema = z.object({
-  businessName: z.string().min(2, 'Business name required'),
+// Step 2: the organization (enterprise D2): its name is private, only you and GymsEra see it.
+const organizationSchema = z.object({
+  organizationName: z.string().min(2, 'Organization name required'),
   email: z.string().email('Invalid email'),
   phone: z.string().min(10, 'Phone number required'),
   // NEW-192: our city id from the Places pick (GET /places/details upserts it), never typed text.
   cityId: z.string().min(1, 'Pick your city from the list.'),
 })
 
+// Step 3: the first business (shown to travellers) and then its first branch.
 const gymProfileSchema = z.object({
-  name: z.string().min(2, 'Gym name required'),
+  name: z.string().min(2, 'Business name required'),
   description: z.string().min(20, 'Description must be at least 20 characters'),
   genderType: z.string().min(1, 'Gender type required'),
 })
 
 type AccountData = z.infer<typeof accountSchema>
 type LoginData = z.infer<typeof loginSchema>
-type BusinessData = z.infer<typeof businessSchema>
+type OrganizationData = z.infer<typeof organizationSchema>
 type GymProfileData = z.infer<typeof gymProfileSchema>
 
 // ── Step Config ───────────────────────────────────────────────────────────────
@@ -85,9 +87,9 @@ const GYM_PHASES: GymPhase[] = ['details', 'location', 'photos', 'plans']
 const STEPS = [
   { id: 'account', label: 'Account', icon: User, description: 'Create your login' },
   { id: 'verify', label: 'Verify', icon: Mail, description: 'Confirm your email' },
-  { id: 'business', label: 'Business', icon: Building2, description: 'Your business info' },
-  { id: 'details', label: 'Gym Details', icon: Dumbbell, description: 'Name and description' },
-  { id: 'location', label: 'Location & Branch', icon: MapPin, description: 'Where members find you' },
+  { id: 'business', label: 'Organization', icon: Building2, description: 'Your company' },
+  { id: 'details', label: 'Business', icon: Dumbbell, description: 'Name and description' },
+  { id: 'location', label: 'Branch', icon: MapPin, description: 'Where members find you' },
   { id: 'photos', label: 'Photos', icon: ImagePlus, description: '5 to 10 photos' },
   { id: 'plans', label: 'Plans', icon: ListChecks, description: 'Membership plans' },
   { id: 'package', label: 'Package', icon: Package, description: 'Choose your plan' },
@@ -190,7 +192,7 @@ export function GymOwnerRegister({
   const [otpValue, setOtpValue] = useState('')
   const [otpCountdown, setOtpCountdown] = useState(300)
   const [error, setError] = useState('')
-  const [tenant, setTenant] = useState<Tenant | null>(null)
+  const [organization, setOrganization] = useState<Organization | null>(null)
   const [selectedPackage, setSelectedPackage] = useState<PlatformPackage | null>(initialPackage ?? null)
   const [paymentMethod, setPaymentMethod] = useState<'bank' | 'later' | 'card'>('bank')
   const [bankRef, setBankRef] = useState('')
@@ -222,7 +224,7 @@ export function GymOwnerRegister({
 
   // Step 3 has four phases so the numbered steps stay put: details, location
   // and branch, photos, then plans. Photos are uploaded as they are added
-  // (they only need the tenant); the gym profile itself is sent once, with the
+  // (they only need the organization); the first business itself is sent once, with the
   // plans — the backend refuses to finalize an application with no plans.
   const [gymPhase, setGymPhase] = useState<GymPhase>('details')
   const [photos, setPhotos] = useState<string[]>([])
@@ -254,7 +256,7 @@ export function GymOwnerRegister({
   })
 
   // GymsEra's own central plan catalog — a deliberately separate catalog
-  // from the legacy PlatformPackage above (see TenantSubscription.model.js's
+  // from the legacy PlatformPackage above (see OrganizationSubscription.model.js's
   // comment on why). Only needed for the card/Stripe payment option below;
   // the bank-transfer / pay-later paths keep using PlatformPackage exactly
   // as before.
@@ -288,7 +290,7 @@ export function GymOwnerRegister({
 
   const accountForm = useForm<AccountData>({ resolver: zodResolver(accountSchema) })
   const loginForm = useForm<LoginData>({ resolver: zodResolver(loginSchema) })
-  const businessForm = useForm<BusinessData>({ resolver: zodResolver(businessSchema) })
+  const businessForm = useForm<OrganizationData>({ resolver: zodResolver(organizationSchema) })
   const gymForm = useForm<GymProfileData>({ resolver: zodResolver(gymProfileSchema) })
 
   // ── Mutations ──────────────────────────────────────────────────────────────
@@ -348,11 +350,11 @@ export function GymOwnerRegister({
     onError: () => toast({ title: 'Error', description: 'Failed to resend OTP.', variant: 'destructive' }),
   })
 
-  const tenantRegisterMutation = useMutation({
-    mutationFn: (data: BusinessData) =>
-      tenantsApi.registerTenant({ ...data, cityId: Number(data.cityId) }),
+  const organizationRegisterMutation = useMutation({
+    mutationFn: (data: OrganizationData) =>
+      organizationsApi.register({ ...data, cityId: Number(data.cityId) }),
     onSuccess: async (res) => {
-      setTenant(res.data.tenant)
+      setOrganization(res.data.organization)
       // Role was just upgraded to GYM_HOST in the DB — refresh the JWT so the
       // next request (/gym-profile) passes the authorize('GYM_HOST') check.
       try {
@@ -379,14 +381,14 @@ export function GymOwnerRegister({
   })
 
   const gymProfileMutation = useMutation({
-    mutationFn: (data: GymProfileData) => tenantsApi.submitGymProfile(tenant!.id, {
-      gymName: data.name,
-      gymDescription: data.description,
+    mutationFn: (data: GymProfileData) => organizationsApi.submitFirstBusiness(organization!.id, {
+      firstBusinessName: data.name,
+      firstBusinessDescription: data.description,
       genderType: data.genderType,
       address: gymAddress,
       latitude: gymLocation?.lat,
       longitude: gymLocation?.lng,
-      mainBranchData: {
+      firstBranchDraft: {
         name: isMainBranch ? data.name : (branchName || data.name),
         address: isMainBranch ? gymAddress : branchAddress,
         latitude: isMainBranch ? gymLocation?.lat : branchLocation?.lat,
@@ -395,7 +397,7 @@ export function GymOwnerRegister({
         phone: isMainBranch ? (branchPhone || null) : (branchBPhone || null),
         openingTime: isMainBranch ? (openingTime || null) : (branchOpeningTime || null),
         closingTime: isMainBranch ? (closingTime || null) : (branchClosingTime || null),
-        cityId: tenant?.cityId ?? null,
+        cityId: organization?.cityId ?? null,
         plans: draftsToApiPlans(plans),
       },
     }),
@@ -417,13 +419,13 @@ export function GymOwnerRegister({
   })
 
   const selectPackageMutation = useMutation({
-    mutationFn: (pkgId: string) => tenantsApi.selectPackage(tenant!.id, { packageId: pkgId }),
+    mutationFn: (pkgId: string) => organizationsApi.selectPackage(organization!.id, { packageId: pkgId }),
     onSuccess: () => { setStep(5); setError('') },
     onError: (err: any) => setError(extractValidationErrorMessage(err, 'Failed to select package.')),
   })
 
   const finalizeMutation = useMutation({
-    mutationFn: () => tenantsApi.finalizeApplication(tenant!.id, {
+    mutationFn: () => organizationsApi.finalizeApplication(organization!.id, {
       paymentMethod: paymentMethod === 'bank' ? 'BANK_TRANSFER' : 'PAY_LATER',
       bankTransferRef: bankRef || undefined,
     }),
@@ -441,7 +443,7 @@ export function GymOwnerRegister({
       billingCycle: selectedPackage?.billingCycle === 'YEARLY' ? 'YEARLY' : 'MONTHLY',
       // Redirects to the dedicated GymsEra Billing page rather than back into
       // this wizard — the wizard's in-memory step state doesn't survive a
-      // full-page navigation to Stripe and back, but the tenant/gym profile
+      // full-page navigation to Stripe and back, but the organization and first business
       // already exist server-side by this point regardless.
       // Stripe fills in {CHECKOUT_SESSION_ID}; the billing page verifies that
       // session server-side — the "success" flag alone proves nothing (BILL-14).
@@ -794,25 +796,26 @@ export function GymOwnerRegister({
             {step === 2 && (
               <div className="space-y-6">
                 <div>
-                  <h1 className="text-2xl font-bold mb-1">Business Information</h1>
-                  <p className="text-muted-foreground text-sm">Tell us about your gym business.</p>
+                  <h1 className="text-2xl font-bold mb-1">Your organization</h1>
+                  <p className="text-muted-foreground text-sm">The company that runs your gyms. Next you add your first business and its first branch.</p>
                 </div>
 
                 <form
-                  onSubmit={businessForm.handleSubmit((data) => { setError(''); tenantRegisterMutation.mutate(data) })}
+                  onSubmit={businessForm.handleSubmit((data) => { setError(''); organizationRegisterMutation.mutate(data) })}
                   className="space-y-5"
                 >
                   <div>
-                    <Label className="mb-2 block">Business / Company Name</Label>
+                    <Label className="mb-2 block">Organization name</Label>
                     <Input
                       placeholder="e.g. Fitness Plus Pvt Ltd"
-                      {...businessForm.register('businessName')}
-                      error={businessForm.formState.errors.businessName?.message}
+                      {...businessForm.register('organizationName')}
+                      error={businessForm.formState.errors.organizationName?.message}
                     />
+                    <p className="mt-1 text-xs text-muted-foreground">Only you and GymsEra see this</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <Label className="mb-2 block">Business Email</Label>
+                      <Label className="mb-2 block">Organization email</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -825,7 +828,7 @@ export function GymOwnerRegister({
                       </div>
                     </div>
                     <div>
-                      <Label className="mb-2 block">Business Phone</Label>
+                      <Label className="mb-2 block">Organization phone</Label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -862,7 +865,7 @@ export function GymOwnerRegister({
                   </div>
 
                   <div className="flex justify-end pt-2">
-                    <Button type="submit" size="lg" loading={tenantRegisterMutation.isPending}>
+                    <Button type="submit" size="lg" loading={organizationRegisterMutation.isPending}>
                       Continue to Gym Profile <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
@@ -890,7 +893,7 @@ export function GymOwnerRegister({
 
             {step === 3 && gymPhase === 'photos' && (
               <RegisterPhotosStep
-                tenantId={tenant?.id ?? ''}
+                organizationId={organization?.id ?? ''}
                 photos={photos}
                 onChange={(next) => { setError(''); setPhotos(next) }}
                 onBack={() => { setError(''); setGymPhase('location') }}
@@ -901,9 +904,9 @@ export function GymOwnerRegister({
             {step === 3 && gymPhase === 'details' && (
               <div className="space-y-6">
                 <div>
-                  <h1 className="text-2xl font-bold mb-1">Gym Details</h1>
+                  <h1 className="text-2xl font-bold mb-1">Your first business</h1>
                   <p className="text-muted-foreground text-sm">
-                    This is how your gym will appear on GymsEra. You can update details anytime from your dashboard.
+                    This is how your business will appear on GymsEra. You can update details anytime from your dashboard.
                   </p>
                 </div>
 
@@ -916,7 +919,7 @@ export function GymOwnerRegister({
                   className="space-y-5"
                 >
                   <div>
-                    <Label className="mb-2 block">Gym Name</Label>
+                    <Label className="mb-2 block">Business name (shown to travellers)</Label>
                     <Input
                       placeholder="e.g. Iron Paradise Gym"
                       {...gymForm.register('name')}
@@ -988,7 +991,7 @@ export function GymOwnerRegister({
                       onLocationChange={setGymLocation}
                       onAddressChange={setGymAddress}
                       onPlaceChange={setGymPlaceId}
-                      cityId={tenant?.cityId ?? null}
+                      cityId={organization?.cityId ?? null}
                       label="Gym address"
                       height="260px"
                       placeholder="Search for your gym address…"
@@ -1074,7 +1077,7 @@ export function GymOwnerRegister({
                             onLocationChange={setBranchLocation}
                             onAddressChange={setBranchAddress}
                             onPlaceChange={setBranchPlaceId}
-                            cityId={tenant?.cityId ?? null}
+                            cityId={organization?.cityId ?? null}
                             label="Branch address"
                             height="220px"
                             placeholder="Search for branch address…"
@@ -1472,10 +1475,10 @@ export function GymOwnerRegister({
                     <p className="font-semibold text-sm">Your Application Summary</p>
                   </div>
                   <div className="p-5 space-y-3">
-                    {tenant?.businessName && (
+                    {organization?.organizationName && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Business</span>
-                        <span className="font-medium">{tenant.businessName}</span>
+                        <span className="text-muted-foreground">Organization</span>
+                        <span className="font-medium">{organization.organizationName}</span>
                       </div>
                     )}
                     {selectedPackage && (

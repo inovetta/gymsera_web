@@ -27,9 +27,9 @@ const statusColors: Record<string, string> = {
 }
 
 export function SubscriptionCard({ subscription, onFreeze, onCancel, onRenew, onViewQR }: SubscriptionCardProps) {
-  // subscriptionId is the tenant DB MemberSubscription UUID (from UserGymMembership.subscriptionId).
+  // subscriptionId is the tenant-database MemberSubscription UUID (from the member subscription index.subscriptionId).
   // Fall back to id for responses that are already MemberSubscription records.
-  const tenantSubId = subscription.subscriptionId ?? subscription.id
+  const memberSubscriptionId = subscription.subscriptionId ?? subscription.id
   const plan = subscription.membershipPlan
   const branch = subscription.branch
   const status = subscription.status
@@ -53,10 +53,10 @@ export function SubscriptionCard({ subscription, onFreeze, onCancel, onRenew, on
                 {status}
               </Badge>
             </div>
-            {(branch || subscription.gymName) && (
+            {(branch || subscription.businessName) && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <MapPin className="h-3 w-3" />
-                {branch?.branchName ?? subscription.gymName}
+                {branch?.branchName ?? subscription.businessName}
               </div>
             )}
           </div>
@@ -112,7 +112,7 @@ export function SubscriptionCard({ subscription, onFreeze, onCancel, onRenew, on
 
         <div className="flex flex-wrap gap-2">
           {(isActive || isFrozen) && (
-            <Link href={`/subscriptions/${tenantSubId}`}>
+            <Link href={`/subscriptions/${memberSubscriptionId}`}>
               <Button size="sm" variant="outline" className="gap-1">
                 <QrCode className="h-3 w-3" />
                 QR Code
@@ -120,19 +120,19 @@ export function SubscriptionCard({ subscription, onFreeze, onCancel, onRenew, on
             </Link>
           )}
           {isActive && onFreeze && (
-            <Button size="sm" variant="outline" className="gap-1" onClick={() => onFreeze(tenantSubId)}>
+            <Button size="sm" variant="outline" className="gap-1" onClick={() => onFreeze(memberSubscriptionId)}>
               <Pause className="h-3 w-3" />
               Freeze
             </Button>
           )}
           {isExpired && onRenew && (
-            <Button size="sm" className="gap-1" onClick={() => onRenew(tenantSubId)}>
+            <Button size="sm" className="gap-1" onClick={() => onRenew(memberSubscriptionId)}>
               <RefreshCw className="h-3 w-3" />
               Renew
             </Button>
           )}
           {(isActive || isFrozen) && onCancel && (
-            <Button size="sm" variant="ghost" className="gap-1 text-destructive hover:text-destructive" onClick={() => onCancel(tenantSubId)}>
+            <Button size="sm" variant="ghost" className="gap-1 text-destructive hover:text-destructive" onClick={() => onCancel(memberSubscriptionId)}>
               <X className="h-3 w-3" />
               Cancel
             </Button>

@@ -59,19 +59,19 @@ function GymsPageContent() {
 
   const { data: gymsData, isLoading, error: gymsError, refetch: refetchGyms } = useQuery({
     queryKey: ['gyms', queryParams],
-    queryFn: () => discoveryApi.getGyms(queryParams),
+    queryFn: () => discoveryApi.getBranches(queryParams),
     placeholderData: (prev) => prev,
     enabled: !nearbyMode,
   })
 
   const { data: nearbyData, isLoading: nearbyLoading, error: nearbyError, refetch: refetchNearby } = useQuery({
     queryKey: ['gyms-nearby', userCoords?.lat, userCoords?.lng],
-    queryFn: () => discoveryApi.getNearbyGyms(userCoords!.lat, userCoords!.lng),
+    queryFn: () => discoveryApi.getNearbyBranches(userCoords!.lat, userCoords!.lng),
     enabled: nearbyMode && !!userCoords,
     placeholderData: (prev) => prev,
   })
 
-  const gyms = nearbyMode ? (nearbyData?.data?.gyms || []) : (gymsData?.data?.gyms || [])
+  const gyms = nearbyMode ? (nearbyData?.data?.branches || []) : (gymsData?.data?.branches || [])
   const pagination = nearbyMode ? undefined : gymsData?.pagination
 
   const handleNearMe = () => {

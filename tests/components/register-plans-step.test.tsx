@@ -11,15 +11,15 @@ vi.mock('next/navigation', () => ({
 }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }), toast: vi.fn() }))
 
-const mockTenants = vi.hoisted(() => ({
-  registerTenant: vi.fn(),
-  submitGymProfile: vi.fn(),
-  uploadOnboardingImages: vi.fn(),
-  replaceOnboardingImages: vi.fn(),
+const mockOrganizations = vi.hoisted(() => ({
+  register: vi.fn(),
+  submitFirstBusiness: vi.fn(),
+  uploadFirstBusinessImages: vi.fn(),
+  replaceFirstBusinessImages: vi.fn(),
   selectPackage: vi.fn(),
   finalizeApplication: vi.fn(),
 }))
-vi.mock('@/lib/api/tenants', () => ({ tenantsApi: mockTenants }))
+vi.mock('@/lib/api/organizations', () => ({ organizationsApi: mockOrganizations }))
 vi.mock('@/lib/api/billing-plans', () => ({
   billingPlansApi: {
     getPlans: vi.fn().mockResolvedValue({ data: { plans: [] } }),
@@ -114,9 +114,9 @@ async function toPlansStep() {
 describe('web signup: membership plans step', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockTenants.registerTenant.mockResolvedValue({ data: { tenant: { id: 't1', cityId: 1 } } })
-    mockTenants.submitGymProfile.mockResolvedValue({ data: { tenant: { id: 't1' } } })
-    mockTenants.uploadOnboardingImages.mockResolvedValue({
+    mockOrganizations.register.mockResolvedValue({ data: { organization: { id: 't1', cityId: 1 } } })
+    mockOrganizations.submitFirstBusiness.mockResolvedValue({ data: { organization: { id: 't1' } } })
+    mockOrganizations.uploadFirstBusinessImages.mockResolvedValue({
       data: { imagesJson: [1, 2, 3, 4, 5].map((n) => `https://cdn.test/${n}.jpg`) },
     })
   })
@@ -128,10 +128,10 @@ describe('web signup: membership plans step', () => {
     const cont = screen.getByRole('button', { name: /Continue to Packages/ })
     expect(cont).toBeDisabled()
     fireEvent.click(cont)
-    expect(mockTenants.submitGymProfile).not.toHaveBeenCalled()
+    expect(mockOrganizations.submitFirstBusiness).not.toHaveBeenCalled()
   })
 
-  it('sends the plans in mainBranchData.plans on gym-profile, in the mobile shape', async () => {
+  it('sends the plans in firstBranchDraft.plans on first-business, in the mobile shape', async () => {
     renderWizard()
     await toPlansStep()
 
@@ -140,12 +140,17 @@ describe('web signup: membership plans step', () => {
     await user.click(screen.getByRole('button', { name: /Add plan/ }))
     await user.click(screen.getByRole('button', { name: /Continue to Packages/ }))
 
-    await waitFor(() => expect(mockTenants.submitGymProfile).toHaveBeenCalledTimes(1))
-    const [tenantId, payload] = mockTenants.submitGymProfile.mock.calls[0]
-    expect(tenantId).toBe('t1')
-    expect(payload.gymName).toBe('Iron Paradise')
+    await waitFor(() => expect(mockOrganizations.submitFirstBusiness).toHaveBeenCalledTimes(1))
+    const [organizationId, payload] = mockOrganizations.submitFirstBusiness.mock.calls[0]
+    expect(organizationId).toBe('t1')
+    // Contract v2: step 2 registers the ORGANIZATION (private name), then step 3 the first business.
+    const registered = mockOrganizations.register.mock.calls[0][0]
+    expect(registered).toMatchObject({ organizationName: 'Iron Paradise Ltd', cityId: expect.any(Number) })
+    expect(registered).not.toHaveProperty('businessName')
+    expect(screen.queryByText('Only you and GymsEra see this')).toBeNull() // shown on step 2 only
+    expect(payload.firstBusinessName).toBe('Iron Paradise')
     // Identical to MOBILE_PLAN in gymsera_be's ux-24 web-shape contract test.
-    expect(payload.mainBranchData.plans).toEqual([
+    expect(payload.firstBranchDraft.plans).toEqual([
       {
         name: 'Monthly', description: null, durationType: 'MONTHLY', durationValue: 1, price: 5000,
         joiningFee: 0, securityFee: 0, visitLimit: null, freezeLimitDays: 0,
@@ -153,9 +158,9 @@ describe('web signup: membership plans step', () => {
       },
     ])
     expect(Object.keys(payload).sort()).toEqual(
-      ['address', 'gymDescription', 'gymName', 'genderType', 'latitude', 'longitude', 'mainBranchData'].sort()
+      ['address', 'firstBusinessDescription', 'firstBusinessName', 'genderType', 'latitude', 'longitude', 'firstBranchDraft'].sort()
     )
-    // Only gym-profile was called here; package selection is the next step.
-    expect(mockTenants.selectPackage).not.toHaveBeenCalled()
+    // Only first-business was called here; package selection is the next step.
+    expect(mockOrganizations.selectPackage).not.toHaveBeenCalled()
   })
 })

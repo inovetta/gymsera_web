@@ -113,7 +113,7 @@ describe('web screens show a retryable error instead of an empty or misleading p
 
   it('public gym list', async () => {
     vi.spyOn(discoveryApi, 'getCities').mockResolvedValue(ok({ cities: [] }) as never)
-    vi.spyOn(discoveryApi, 'getGyms').mockRejectedValue(serverDown)
+    vi.spyOn(discoveryApi, 'getBranches').mockRejectedValue(serverDown)
     renderPage(<GymsPage />)
     await expectRetryableError(/no gyms found/i)
   })

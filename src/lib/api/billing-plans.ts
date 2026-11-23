@@ -2,9 +2,9 @@ import apiClient from './client'
 import { ApiResponse, BillingPlan } from '@/types'
 
 // GET /host/subscription/current — the same endpoint the mobile app reads
-// for "what does this tenant's account currently entitle them to." Reused
+// for "what does this organization's account currently entitle them to." Reused
 // as-is rather than adding a website-specific duplicate.
-export interface CurrentTenantSubscription {
+export interface CurrentOrganizationSubscription {
   id: string
   platform: 'MANUAL' | 'IOS' | 'ANDROID' | 'STRIPE'
   status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING_MIGRATION' | 'PENDING_CANCEL' | 'SCHEDULED'
@@ -101,7 +101,7 @@ export const billingPlansApi = {
     return data
   },
 
-  getCurrentSubscription: async (): Promise<ApiResponse<CurrentTenantSubscription>> => {
+  getCurrentSubscription: async (): Promise<ApiResponse<CurrentOrganizationSubscription>> => {
     const { data } = await apiClient.get('/host/subscription/current')
     return data
   },

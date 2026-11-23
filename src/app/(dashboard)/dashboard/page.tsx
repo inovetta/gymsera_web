@@ -82,10 +82,10 @@ export default function DashboardPage() {
                 <span className="font-semibold">Active Membership</span>
               </div>
               <h2 className="text-2xl font-bold">{activeSubscription.membershipPlan?.name ?? activeSubscription.planName}</h2>
-              {(activeSubscription.branch || activeSubscription.gymName) && (
+              {(activeSubscription.branch || activeSubscription.businessName) && (
                 <div className="flex items-center gap-1 mt-1 text-white/80 text-sm">
                   <MapPin className="h-3.5 w-3.5" />
-                  {activeSubscription.branch?.branchName ?? activeSubscription.gymName}
+                  {activeSubscription.branch?.branchName ?? activeSubscription.businessName}
                 </div>
               )}
             </div>

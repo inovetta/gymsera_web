@@ -3,7 +3,7 @@ import { ApiResponse, MemberSubscription, Payment, Invoice } from '@/types'
 
 export interface CreateSubscriptionPayload {
   planId: string
-  gymListingId: string
+  businessId: string
   branchId: string
   autoRenew?: boolean
 }

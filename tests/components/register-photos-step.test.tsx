@@ -2,11 +2,11 @@ import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 
-const mockTenants = vi.hoisted(() => ({
-  uploadOnboardingImages: vi.fn(),
-  replaceOnboardingImages: vi.fn(),
+const mockOrganizations = vi.hoisted(() => ({
+  uploadFirstBusinessImages: vi.fn(),
+  replaceFirstBusinessImages: vi.fn(),
 }))
-vi.mock('@/lib/api/tenants', () => ({ tenantsApi: mockTenants }))
+vi.mock('@/lib/api/organizations', () => ({ organizationsApi: mockOrganizations }))
 
 import {
   RegisterPhotosStep,
@@ -26,7 +26,7 @@ function setup(initial: string[] = []) {
   const onContinue = vi.fn()
   const onBack = vi.fn()
   render(
-    <RegisterPhotosStep tenantId="t1" photos={initial} onChange={onChange} onBack={onBack} onContinue={onContinue} />
+    <RegisterPhotosStep organizationId="t1" photos={initial} onChange={onChange} onBack={onBack} onContinue={onContinue} />
   )
   return { onChange, onContinue, onBack }
 }
@@ -57,18 +57,18 @@ describe('web signup: photos step', () => {
   })
 
   it('upload: POSTs the files for the tenant and hands back the server list', async () => {
-    mockTenants.uploadOnboardingImages.mockResolvedValue({ data: { imagesJson: urls(2) } })
+    mockOrganizations.uploadFirstBusinessImages.mockResolvedValue({ data: { imagesJson: urls(2) } })
     const { onChange } = setup()
     const a = file('a.jpg')
     const b = file('b.png', 'image/png')
     fireEvent.change(screen.getByTestId('photo-input'), { target: { files: [a, b] } })
 
     await waitFor(() => expect(onChange).toHaveBeenCalledWith(urls(2)))
-    expect(mockTenants.uploadOnboardingImages).toHaveBeenCalledWith('t1', [a, b])
+    expect(mockOrganizations.uploadFirstBusinessImages).toHaveBeenCalledWith('t1', [a, b])
   })
 
   it('shows the server error message when the upload is rejected', async () => {
-    mockTenants.uploadOnboardingImages.mockRejectedValue({
+    mockOrganizations.uploadFirstBusinessImages.mockRejectedValue({
       response: { data: { message: 'File size must not exceed 10 MB' } },
     })
     const { onChange } = setup()
@@ -87,14 +87,14 @@ describe('web signup: photos step', () => {
       target: { files: [file('huge.jpg', 'image/jpeg', 11 * 1024 * 1024)] },
     })
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/must not exceed 10 MB/))
-    expect(mockTenants.uploadOnboardingImages).not.toHaveBeenCalled()
+    expect(mockOrganizations.uploadFirstBusinessImages).not.toHaveBeenCalled()
   })
 
   it('maximum: refuses files beyond 10 and disables Add photos at 10', async () => {
     setup(urls(MAX_PHOTOS - 1))
     fireEvent.change(screen.getByTestId('photo-input'), { target: { files: [file('a.jpg'), file('b.jpg')] } })
     expect(await screen.findByRole('alert')).toHaveTextContent(/add 1 more photo \(maximum 10\)/)
-    expect(mockTenants.uploadOnboardingImages).not.toHaveBeenCalled()
+    expect(mockOrganizations.uploadFirstBusinessImages).not.toHaveBeenCalled()
   })
 
   it('Add photos is disabled once 10 are added', () => {
@@ -103,18 +103,18 @@ describe('web signup: photos step', () => {
   })
 
   it('remove: PUTs the list without that photo, then updates', async () => {
-    mockTenants.replaceOnboardingImages.mockResolvedValue({ data: { imagesJson: [] } })
+    mockOrganizations.replaceFirstBusinessImages.mockResolvedValue({ data: { imagesJson: [] } })
     const { onChange } = setup(urls(6))
     fireEvent.click(screen.getByRole('button', { name: 'Remove photo 2' }))
 
     await waitFor(() => expect(onChange).toHaveBeenCalled())
     const expected = urls(6).filter((_, i) => i !== 1)
-    expect(mockTenants.replaceOnboardingImages).toHaveBeenCalledWith('t1', expected)
+    expect(mockOrganizations.replaceFirstBusinessImages).toHaveBeenCalledWith('t1', expected)
     expect(onChange).toHaveBeenCalledWith(expected)
   })
 
   it('remove: keeps the photo and shows the server error when the PUT fails', async () => {
-    mockTenants.replaceOnboardingImages.mockRejectedValue({ response: { data: { message: 'Tenant not found or access denied' } } })
+    mockOrganizations.replaceFirstBusinessImages.mockRejectedValue({ response: { data: { message: 'Tenant not found or access denied' } } })
     const { onChange } = setup(urls(6))
     fireEvent.click(screen.getByRole('button', { name: 'Remove photo 1' }))
 

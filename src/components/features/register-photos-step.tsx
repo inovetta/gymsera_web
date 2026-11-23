@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { ArrowLeft, ChevronRight, ImagePlus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { tenantsApi } from '@/lib/api/tenants'
+import { organizationsApi } from '@/lib/api/organizations'
 import { extractValidationErrorMessage } from '@/lib/utils'
 
 // Photo count rules are client-side only (the backend has no minimum). The
@@ -16,14 +16,14 @@ export const MAX_PHOTO_BYTES = 10 * 1024 * 1024
 export const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 interface Props {
-  tenantId: string
+  organizationId: string
   photos: string[]
   onChange: (photos: string[]) => void
   onBack: () => void
   onContinue: () => void
 }
 
-export function RegisterPhotosStep({ tenantId, photos, onChange, onBack, onContinue }: Props) {
+export function RegisterPhotosStep({ organizationId, photos, onChange, onBack, onContinue }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -47,7 +47,7 @@ export function RegisterPhotosStep({ tenantId, photos, onChange, onBack, onConti
 
     setBusy(true)
     try {
-      const res = await tenantsApi.uploadOnboardingImages(tenantId, files)
+      const res = await organizationsApi.uploadFirstBusinessImages(organizationId, files)
       onChange(res.data.imagesJson)
     } catch (err) {
       setError(extractValidationErrorMessage(err, 'Failed to upload photos.'))
@@ -61,7 +61,7 @@ export function RegisterPhotosStep({ tenantId, photos, onChange, onBack, onConti
     setError('')
     setBusy(true)
     try {
-      await tenantsApi.replaceOnboardingImages(tenantId, next)
+      await organizationsApi.replaceFirstBusinessImages(organizationId, next)
       onChange(next)
     } catch (err) {
       setError(extractValidationErrorMessage(err, 'Failed to remove photo.'))

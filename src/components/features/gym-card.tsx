@@ -5,6 +5,7 @@ import { GymListing } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { StarRating } from './star-rating'
+import { VerifiedCheck } from './verified-check'
 import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
@@ -36,7 +37,7 @@ export function GymCard({ gym, className }: GymCardProps) {
   const gradient = gradientColors[(gym.name?.charCodeAt(0) ?? 0) % gradientColors.length]
 
   return (
-    <Link href={`/gyms/${gym.id}`} className={cn('group bg-card rounded-xl border overflow-hidden card-hover block', className)}>
+    <Link href={gym.businessId ? `/gyms/${gym.businessId}/branches/${gym.id}` : `/gyms/${gym.id}`} className={cn('group bg-card rounded-xl border overflow-hidden card-hover block', className)}>
       {/* Cover Image */}
       <div className="relative h-48 overflow-hidden">
         {gym.coverImageUrl ? (
@@ -77,7 +78,10 @@ export function GymCard({ gym, className }: GymCardProps) {
       {/* Info */}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-semibold text-base leading-tight line-clamp-1">{gym.name}</h3>
+          <h3 className="flex items-center gap-1.5 font-semibold text-base leading-tight">
+            <span className="line-clamp-1">{gym.name}</span>
+            <VerifiedCheck verified={gym.businessVerified} />
+          </h3>
         </div>
 
         {/* Rating: approved reviews only; none = "New" (BUG-27) */}
