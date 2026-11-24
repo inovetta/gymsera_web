@@ -61,10 +61,11 @@ const setup = async (key = 'web-key') => {
   const onLocationChange = vi.fn()
   const onAddressChange = vi.fn()
   const onPlaceChange = vi.fn()
+  const onAreaChange = vi.fn()
   render(
-    <LocationPicker value={null} address="" cityId={7} onLocationChange={onLocationChange} onAddressChange={onAddressChange} onPlaceChange={onPlaceChange} />
+    <LocationPicker value={null} address="" cityId={7} onLocationChange={onLocationChange} onAddressChange={onAddressChange} onPlaceChange={onPlaceChange} onAreaChange={onAreaChange} />
   )
-  return { onLocationChange, onAddressChange, onPlaceChange }
+  return { onLocationChange, onAddressChange, onPlaceChange, onAreaChange }
 }
 
 describe('NEW-140: the registration location picker', () => {
@@ -80,6 +81,17 @@ describe('NEW-140: the registration location picker', () => {
     expect(details).toHaveBeenCalledWith('addr-mm-alam', expect.objectContaining({ kind: 'address' }))
     expect(onAddressChange).toHaveBeenLastCalledWith('12 MM Alam Road, Gulberg III, Lahore')
     expect(onPlaceChange).toHaveBeenLastCalledWith('addr-mm-alam')
+  })
+
+  it('A3 J10: passes the matched area id up, and clears it when the address is typed by hand', async () => {
+    const { onAreaChange } = await setup()
+    const input = screen.getByRole('combobox', { name: /gym address/i })
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: '12 MM' } })
+    fireEvent.click(await screen.findByRole('button', { name: /12 MM Alam Road/ }))
+    await waitFor(() => expect(onAreaChange).toHaveBeenLastCalledWith(71))
+    fireEvent.change(input, { target: { value: '12 MM Alam R' } })
+    expect(onAreaChange).toHaveBeenLastCalledWith(null)
   })
 
   it('never loads Google Places or the Geocoder in the browser', async () => {

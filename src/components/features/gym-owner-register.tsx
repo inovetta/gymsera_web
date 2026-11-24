@@ -207,6 +207,9 @@ export function GymOwnerRegister({
   // NEW-140: the Google place each address was picked from (sent as the main branch's placeId).
   const [gymPlaceId, setGymPlaceId] = useState<string | null>(null)
   const [branchPlaceId, setBranchPlaceId] = useState<string | null>(null)
+  // The area our /places API matched to each picked address (FirstBranch needs areaId or areaRequestId).
+  const [gymAreaId, setGymAreaId] = useState<number | null>(null)
+  const [branchAreaId, setBranchAreaId] = useState<number | null>(null)
 
   // Main branch
   const [isMainBranch, setIsMainBranch] = useState(true)
@@ -385,20 +388,20 @@ export function GymOwnerRegister({
       firstBusinessName: data.name,
       firstBusinessDescription: data.description,
       genderType: data.genderType,
-      address: gymAddress,
-      latitude: gymLocation?.lat,
-      longitude: gymLocation?.lng,
-      firstBranchDraft: {
-        name: isMainBranch ? data.name : (branchName || data.name),
-        address: isMainBranch ? gymAddress : branchAddress,
-        latitude: isMainBranch ? gymLocation?.lat : branchLocation?.lat,
-        longitude: isMainBranch ? gymLocation?.lng : branchLocation?.lng,
-        placeId: (isMainBranch ? gymPlaceId : branchPlaceId) || null,
-        phone: isMainBranch ? (branchPhone || null) : (branchBPhone || null),
-        openingTime: isMainBranch ? (openingTime || null) : (branchOpeningTime || null),
-        closingTime: isMainBranch ? (closingTime || null) : (branchClosingTime || null),
-        cityId: organization?.cityId ?? null,
-        plans: draftsToApiPlans(plans),
+      // A3 J10: one FirstBranch body (branchName, googlePlaceId, imagesJson >= 3, packages, areaId).
+      firstBranch: {
+        branchName: isMainBranch ? data.name : (branchName || data.name),
+        cityId: organization?.cityId as number,
+        ...((isMainBranch ? gymAreaId : branchAreaId) != null ? { areaId: (isMainBranch ? gymAreaId : branchAreaId) as number } : {}),
+        address: (isMainBranch ? gymAddress : branchAddress),
+        latitude: (isMainBranch ? gymLocation?.lat : branchLocation?.lat) as number,
+        longitude: (isMainBranch ? gymLocation?.lng : branchLocation?.lng) as number,
+        ...((isMainBranch ? gymPlaceId : branchPlaceId) ? { googlePlaceId: (isMainBranch ? gymPlaceId : branchPlaceId) as string } : {}),
+        ...((isMainBranch ? branchPhone : branchBPhone) ? { phone: (isMainBranch ? branchPhone : branchBPhone) } : {}),
+        ...((isMainBranch ? openingTime : branchOpeningTime) ? { openingTime: isMainBranch ? openingTime : branchOpeningTime } : {}),
+        ...((isMainBranch ? closingTime : branchClosingTime) ? { closingTime: isMainBranch ? closingTime : branchClosingTime } : {}),
+        imagesJson: photos,
+        packages: draftsToApiPlans(plans),
       },
     }),
     onSuccess: () => { setStep(4); setError('') },
@@ -991,6 +994,7 @@ export function GymOwnerRegister({
                       onLocationChange={setGymLocation}
                       onAddressChange={setGymAddress}
                       onPlaceChange={setGymPlaceId}
+                      onAreaChange={setGymAreaId}
                       cityId={organization?.cityId ?? null}
                       label="Gym address"
                       height="260px"
@@ -1077,6 +1081,7 @@ export function GymOwnerRegister({
                             onLocationChange={setBranchLocation}
                             onAddressChange={setBranchAddress}
                             onPlaceChange={setBranchPlaceId}
+                            onAreaChange={setBranchAreaId}
                             cityId={organization?.cityId ?? null}
                             label="Branch address"
                             height="220px"

@@ -15,6 +15,8 @@ export interface LocationPickerProps {
   onAddressChange: (address: string) => void
   /** The Google place the address was picked from (null once the host types it by hand). */
   onPlaceChange?: (placeId: string | null) => void
+  /** The area our /places API matched to the picked address (null: none matched, or typed by hand). */
+  onAreaChange?: (areaId: number | null) => void
   /** The city the gym is in: biases the address search to it. */
   cityId?: number | null
   className?: string
@@ -49,7 +51,7 @@ function FollowPin({ value }: { value: LatLng | null }) {
 }
 
 export function LocationPicker({
-  value, address, onLocationChange, onAddressChange, onPlaceChange, cityId, className,
+  value, address, onLocationChange, onAddressChange, onPlaceChange, onAreaChange, cityId, className,
   height = '280px', placeholder = 'Search address or place…', label = 'Gym address',
 }: LocationPickerProps) {
   const inputId = useId()
@@ -96,6 +98,7 @@ export function LocationPicker({
       setSuggestions([])
       onAddressChange(shown)
       onPlaceChange?.(place.placeId)
+      onAreaChange?.(place.area?.id ?? null)
       if (place.latitude != null && place.longitude != null) onLocationChange({ lat: place.latitude, lng: place.longitude })
     } catch (err) {
       setError(requestError(err, 'We could not use that place. Please pick another one.'))
@@ -116,6 +119,7 @@ export function LocationPicker({
           typed.current = false
           if (place.formattedAddress) { setText(place.formattedAddress); onAddressChange(place.formattedAddress) }
           onPlaceChange?.(place.placeId)
+          onAreaChange?.(place.area?.id ?? null)
           onLocationChange({ lat: place.latitude ?? coords.latitude, lng: place.longitude ?? coords.longitude })
         } catch (err) {
           setError(requestError(err, 'We could not find an address here. Please type it instead.'))
@@ -163,6 +167,7 @@ export function LocationPicker({
               setOpen(true)
               onAddressChange(e.target.value)
               onPlaceChange?.(null)
+              onAreaChange?.(null)
             }}
             className="flex h-10 w-full rounded-lg border border-input bg-background pl-10 pr-9 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 placeholder:text-muted-foreground"
           />

@@ -10,34 +10,40 @@ export interface RegisterOrganizationPayload {
   cityId: number
 }
 
-/** The first branch draft kept on the organization (contract v2: `firstBranchDraft`, was `mainBranchData`). */
-export interface FirstBranchDraft {
-  name: string
-  address?: string
-  latitude?: number
-  longitude?: number
-  /** NEW-140: the Google place the address was picked from (provisioning stores it as googlePlaceId). */
-  placeId?: string | null
-  phone?: string | null
-  openingTime?: string | null
-  closingTime?: string | null
-  cityId?: number | null
-  plans?: FormattedPlan[]
+/**
+ * Contract v2 A3 J10: the `FirstBranch` schema (A2 H2), one for first-business, Add Business and the
+ * first-branch edit. The city and the area come from our /places API; exactly one of `areaId` /
+ * `areaRequestId` is sent.
+ */
+export interface FirstBranch {
+  branchName: string
+  cityId: number
+  areaId?: number
+  areaRequestId?: number
+  address: string
+  latitude: number
+  longitude: number
+  googlePlaceId?: string
+  phone?: string
+  /** One-slot form of the hours (default 06:00-22:00 when absent). */
+  openingTime?: string
+  closingTime?: string
+  facilitiesJson?: string[]
+  /** URLs of the uploaded photos: at least 3. */
+  imagesJson: string[]
+  packages: FormattedPlan[]
 }
 
-/** POST /organizations/:organizationId/first-business (was gym-profile): the first business and its first branch draft. */
+/** POST /organizations/:organizationId/first-business (A3 J10): the first business and its `firstBranch`. */
 export interface FirstBusinessPayload {
   /** Only sent when it changed (the organization name step). */
   organizationName?: string
   firstBusinessName: string
   firstBusinessDescription: string
   genderType: string
-  address?: string
-  latitude?: number
-  longitude?: number
   logoUrl?: string
   coverImageUrl?: string
-  firstBranchDraft?: FirstBranchDraft
+  firstBranch: FirstBranch
 }
 
 export interface SelectPackagePayload {

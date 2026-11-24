@@ -61,8 +61,8 @@ vi.mock('@/components/ui/select', async () => {
   }
 })
 vi.mock('@/components/features/location-picker', () => ({
-  LocationPicker: ({ onLocationChange, onAddressChange }: any) => (
-    <button type="button" onClick={() => { onLocationChange({ lat: 31.5, lng: 74.3 }); onAddressChange('1 Main Rd') }}>
+  LocationPicker: ({ onLocationChange, onAddressChange, onPlaceChange, onAreaChange }: any) => (
+    <button type="button" onClick={() => { onLocationChange({ lat: 31.5, lng: 74.3 }); onAddressChange('1 Main Rd'); onPlaceChange?.('gp-1'); onAreaChange?.(42) }}>
       pin location
     </button>
   ),
@@ -131,7 +131,7 @@ describe('web signup: membership plans step', () => {
     expect(mockOrganizations.submitFirstBusiness).not.toHaveBeenCalled()
   })
 
-  it('sends the plans in firstBranchDraft.plans on first-business, in the mobile shape', async () => {
+  it('sends one firstBranch (A3 J10) on first-business, plans as packages in the mobile shape', async () => {
     renderWizard()
     await toPlansStep()
 
@@ -150,16 +150,27 @@ describe('web signup: membership plans step', () => {
     expect(screen.queryByText('Only you and GymsEra see this')).toBeNull() // shown on step 2 only
     expect(payload.firstBusinessName).toBe('Iron Paradise')
     // Identical to MOBILE_PLAN in gymsera_be's ux-24 web-shape contract test.
-    expect(payload.firstBranchDraft.plans).toEqual([
+    expect(payload.firstBranch.packages).toEqual([
       {
         name: 'Monthly', description: null, durationType: 'MONTHLY', durationValue: 1, price: 5000,
         joiningFee: 0, securityFee: 0, visitLimit: null, freezeLimitDays: 0,
         isTrial: false, isPublic: true, status: 'ACTIVE', isDeactivated: false,
       },
     ])
-    expect(Object.keys(payload).sort()).toEqual(
-      ['address', 'firstBusinessDescription', 'firstBusinessName', 'genderType', 'latitude', 'longitude', 'firstBranchDraft'].sort()
-    )
+    // A3 J10: the body is organization/business keys plus ONE firstBranch; no flat address, no firstBranchDraft.
+    expect(Object.keys(payload).sort()).toEqual(['firstBranch', 'firstBusinessDescription', 'firstBusinessName', 'genderType'])
+    expect(payload).not.toHaveProperty('firstBranchDraft')
+    const fb = payload.firstBranch
+    expect(fb).toMatchObject({
+      branchName: 'Iron Paradise', cityId: 1, areaId: 42, address: '1 Main Rd', latitude: 31.5, longitude: 74.3,
+      googlePlaceId: 'gp-1',
+    })
+    expect(fb).not.toHaveProperty('areaRequestId')
+    expect(fb).not.toHaveProperty('name')
+    expect(fb).not.toHaveProperty('placeId')
+    expect(fb).not.toHaveProperty('plans')
+    expect(fb.imagesJson).toHaveLength(5)
+    expect(fb.imagesJson.length).toBeGreaterThanOrEqual(3)
     // Only first-business was called here; package selection is the next step.
     expect(mockOrganizations.selectPackage).not.toHaveBeenCalled()
   })
