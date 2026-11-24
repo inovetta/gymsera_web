@@ -16,7 +16,7 @@ export interface LocationPickerProps {
   /** The Google place the address was picked from (null once the host types it by hand). */
   onPlaceChange?: (placeId: string | null) => void
   /** The area our /places API matched to the picked address (null: none matched, or typed by hand). */
-  onAreaChange?: (areaId: number | null) => void
+  onAreaChange?: (area: { id: number; name: string } | null) => void
   /** The city the gym is in: biases the address search to it. */
   cityId?: number | null
   className?: string
@@ -98,7 +98,7 @@ export function LocationPicker({
       setSuggestions([])
       onAddressChange(shown)
       onPlaceChange?.(place.placeId)
-      onAreaChange?.(place.area?.id ?? null)
+      onAreaChange?.(place.area ?? null)
       if (place.latitude != null && place.longitude != null) onLocationChange({ lat: place.latitude, lng: place.longitude })
     } catch (err) {
       setError(requestError(err, 'We could not use that place. Please pick another one.'))
@@ -119,7 +119,7 @@ export function LocationPicker({
           typed.current = false
           if (place.formattedAddress) { setText(place.formattedAddress); onAddressChange(place.formattedAddress) }
           onPlaceChange?.(place.placeId)
-          onAreaChange?.(place.area?.id ?? null)
+          onAreaChange?.(place.area ?? null)
           onLocationChange({ lat: place.latitude ?? coords.latitude, lng: place.longitude ?? coords.longitude })
         } catch (err) {
           setError(requestError(err, 'We could not find an address here. Please type it instead.'))

@@ -15,7 +15,7 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }), toas
 const mockOrganizations = vi.hoisted(() => ({
   register: vi.fn(),
   submitFirstBusiness: vi.fn(),
-  uploadFirstBusinessImages: vi.fn(),
+  uploadStagingImages: vi.fn(),
   replaceFirstBusinessImages: vi.fn(),
   selectPackage: vi.fn(),
   finalizeApplication: vi.fn(),
@@ -60,8 +60,8 @@ vi.mock('@/components/ui/select', async () => {
   }
 })
 vi.mock('@/components/features/location-picker', () => ({
-  LocationPicker: ({ onLocationChange, onAddressChange }: any) => (
-    <button type="button" onClick={() => { onLocationChange({ lat: 31.5, lng: 74.3 }); onAddressChange('1 Main Rd') }}>
+  LocationPicker: ({ onLocationChange, onAddressChange, onAreaChange }: any) => (
+    <button type="button" onClick={() => { onLocationChange({ lat: 31.5, lng: 74.3 }); onAddressChange('1 Main Rd'); onAreaChange?.({ id: 42, name: 'Gulberg III' }) }}>
       pin location
     </button>
   ),
@@ -84,8 +84,8 @@ describe('web signup: wizard order (business, details, location, photos, plans, 
     vi.clearAllMocks()
     search.value = ''
     mockOrganizations.register.mockResolvedValue({ data: { organization: { id: 't1', cityId: 1 } } })
-    mockOrganizations.uploadFirstBusinessImages.mockResolvedValue({
-      data: { imagesJson: [1, 2, 3, 4, 5].map((n) => `https://cdn.test/${n}.jpg`) },
+    mockOrganizations.uploadStagingImages.mockResolvedValue({
+      data: { urls: [1, 2, 3, 4, 5].map((n) => `https://cdn.test/${n}.jpg`) },
     })
   })
 
@@ -117,14 +117,14 @@ describe('web signup: wizard order (business, details, location, photos, plans, 
     click(screen.getByRole('button', { name: 'pin location' }))
     click(screen.getByRole('button', { name: /Continue to Photos/ }))
 
-    // 3. photos — gated at 5
+    // 3. photos — gated at 3 (FirstBranch needs at least 3 urls)
     expect(await screen.findByRole('heading', { name: 'Gym Photos' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Continue to Plans/ })).toBeDisabled()
     fireEvent.change(screen.getByTestId('photo-input'), {
       target: { files: [1, 2, 3, 4, 5].map((n) => new File(['x'], `${n}.jpg`, { type: 'image/jpeg' })) },
     })
     await waitFor(() => expect(screen.getByRole('button', { name: /Continue to Plans/ })).not.toBeDisabled())
-    expect(mockOrganizations.uploadFirstBusinessImages).toHaveBeenCalledWith('t1', expect.any(Array))
+    expect(mockOrganizations.uploadStagingImages).toHaveBeenCalledWith(expect.any(Array))
     click(screen.getByRole('button', { name: /Continue to Plans/ }))
 
     // 4. plans

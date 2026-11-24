@@ -18,7 +18,7 @@ vi.mock('next/navigation', () => ({
 }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }), toast: vi.fn() }))
 const mockOrganizations = vi.hoisted(() => ({
-  register: vi.fn(), submitFirstBusiness: vi.fn(), uploadFirstBusinessImages: vi.fn(),
+  register: vi.fn(), submitFirstBusiness: vi.fn(), uploadStagingImages: vi.fn(),
   replaceFirstBusinessImages: vi.fn(), selectPackage: vi.fn(), finalizeApplication: vi.fn(),
 }))
 vi.mock('@/lib/api/organizations', () => ({ organizationsApi: mockOrganizations }))

@@ -1,6 +1,7 @@
 import apiClient from './client'
 import { ApiResponse, Organization } from '@/types'
 import type { FormattedPlan } from '@/lib/format-plans'
+import type { WeeklyHours } from '@/lib/hours'
 
 /** POST /organizations/register (contract v2 row 45). The organization name is private (D2, D3). */
 export interface RegisterOrganizationPayload {
@@ -18,6 +19,7 @@ export interface RegisterOrganizationPayload {
 export interface FirstBranch {
   branchName: string
   cityId: number
+  /** Exactly one of `areaId` / `areaRequestId` (a typed area waiting for review). */
   areaId?: number
   areaRequestId?: number
   address: string
@@ -25,9 +27,8 @@ export interface FirstBranch {
   longitude: number
   googlePlaceId?: string
   phone?: string
-  /** One-slot form of the hours (default 06:00-22:00 when absent). */
-  openingTime?: string
-  closingTime?: string
+  /** WeeklyHours (R-113); the wizard sends one slot on every day, default 06:00-22:00. */
+  hours: WeeklyHours
   facilitiesJson?: string[]
   /** URLs of the uploaded photos: at least 3. */
   imagesJson: string[]
@@ -40,7 +41,7 @@ export interface FirstBusinessPayload {
   organizationName?: string
   firstBusinessName: string
   firstBusinessDescription: string
-  genderType: string
+  genderType?: string
   logoUrl?: string
   coverImageUrl?: string
   firstBranch: FirstBranch
@@ -71,19 +72,16 @@ export const organizationsApi = {
     return data
   },
 
-  // Step 4 photos, held on the organization until admin approval. POST appends and
-  // returns the FULL merged list; PUT replaces the list (how a removal works).
-  uploadFirstBusinessImages: async (organizationId: string, files: File[]): Promise<ApiResponse<{ imagesJson: string[] }>> => {
+  /**
+   * Photos before submit (A3 J12): stateless, nothing is kept on the server. 1 to 10 files in the
+   * multipart field `images`; the answer is `data.urls`, which go into `firstBranch.imagesJson`.
+   */
+  uploadStagingImages: async (files: File[]): Promise<ApiResponse<{ urls: string[] }>> => {
     const formData = new FormData()
     files.forEach((file) => formData.append('images', file))
-    const { data } = await apiClient.post(`/organizations/${organizationId}/first-business/images`, formData, {
+    const { data } = await apiClient.post('/host/staging-images', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    return data
-  },
-
-  replaceFirstBusinessImages: async (organizationId: string, imagesJson: string[]): Promise<ApiResponse<{ imagesJson: string[] }>> => {
-    const { data } = await apiClient.put(`/organizations/${organizationId}/first-business/images`, { imagesJson })
     return data
   },
 

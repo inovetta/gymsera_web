@@ -29,6 +29,8 @@ import { organizationsApi } from '@/lib/api/organizations'
 import { packagesApi } from '@/lib/api/packages'
 import { billingPlansApi } from '@/lib/api/billing-plans'
 import { RegisterPlansStep, PlanDraft, draftsToApiPlans } from '@/components/features/register-plans-step'
+import { RegisterAreaField, areaPayload, AreaValue } from '@/components/features/places/register-area-field'
+import { uniformWeek } from '@/lib/hours'
 import { RegisterPhotosStep } from '@/components/features/register-photos-step'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAuth } from '@/hooks/use-auth'
@@ -90,7 +92,7 @@ const STEPS = [
   { id: 'business', label: 'Organization', icon: Building2, description: 'Your company' },
   { id: 'details', label: 'Business', icon: Dumbbell, description: 'Name and description' },
   { id: 'location', label: 'Branch', icon: MapPin, description: 'Where members find you' },
-  { id: 'photos', label: 'Photos', icon: ImagePlus, description: '5 to 10 photos' },
+  { id: 'photos', label: 'Photos', icon: ImagePlus, description: '3 to 10 photos' },
   { id: 'plans', label: 'Plans', icon: ListChecks, description: 'Membership plans' },
   { id: 'package', label: 'Package', icon: Package, description: 'Choose your plan' },
   { id: 'payment', label: 'Payment', icon: CreditCard, description: 'Billing & review' },
@@ -208,8 +210,8 @@ export function GymOwnerRegister({
   const [gymPlaceId, setGymPlaceId] = useState<string | null>(null)
   const [branchPlaceId, setBranchPlaceId] = useState<string | null>(null)
   // The area our /places API matched to each picked address (FirstBranch needs areaId or areaRequestId).
-  const [gymAreaId, setGymAreaId] = useState<number | null>(null)
-  const [branchAreaId, setBranchAreaId] = useState<number | null>(null)
+  const [gymArea, setGymArea] = useState<AreaValue>({})
+  const [branchArea, setBranchArea] = useState<AreaValue>({})
 
   // Main branch
   const [isMainBranch, setIsMainBranch] = useState(true)
@@ -392,14 +394,13 @@ export function GymOwnerRegister({
       firstBranch: {
         branchName: isMainBranch ? data.name : (branchName || data.name),
         cityId: organization?.cityId as number,
-        ...((isMainBranch ? gymAreaId : branchAreaId) != null ? { areaId: (isMainBranch ? gymAreaId : branchAreaId) as number } : {}),
+        ...(areaPayload(isMainBranch ? gymArea : branchArea) ?? {}),
         address: (isMainBranch ? gymAddress : branchAddress),
         latitude: (isMainBranch ? gymLocation?.lat : branchLocation?.lat) as number,
         longitude: (isMainBranch ? gymLocation?.lng : branchLocation?.lng) as number,
         ...((isMainBranch ? gymPlaceId : branchPlaceId) ? { googlePlaceId: (isMainBranch ? gymPlaceId : branchPlaceId) as string } : {}),
         ...((isMainBranch ? branchPhone : branchBPhone) ? { phone: (isMainBranch ? branchPhone : branchBPhone) } : {}),
-        ...((isMainBranch ? openingTime : branchOpeningTime) ? { openingTime: isMainBranch ? openingTime : branchOpeningTime } : {}),
-        ...((isMainBranch ? closingTime : branchClosingTime) ? { closingTime: isMainBranch ? closingTime : branchClosingTime } : {}),
+        hours: isMainBranch ? uniformWeek(openingTime, closingTime) : uniformWeek(branchOpeningTime, branchClosingTime),
         imagesJson: photos,
         packages: draftsToApiPlans(plans),
       },
@@ -896,7 +897,6 @@ export function GymOwnerRegister({
 
             {step === 3 && gymPhase === 'photos' && (
               <RegisterPhotosStep
-                organizationId={organization?.id ?? ''}
                 photos={photos}
                 onChange={(next) => { setError(''); setPhotos(next) }}
                 onBack={() => { setError(''); setGymPhase('location') }}
@@ -994,7 +994,7 @@ export function GymOwnerRegister({
                       onLocationChange={setGymLocation}
                       onAddressChange={setGymAddress}
                       onPlaceChange={setGymPlaceId}
-                      onAreaChange={setGymAreaId}
+                      onAreaChange={(a) => setGymArea(a ? { areaId: a.id, areaName: a.name } : {})}
                       cityId={organization?.cityId ?? null}
                       label="Gym address"
                       height="260px"
@@ -1003,6 +1003,14 @@ export function GymOwnerRegister({
                     />
                     {!gymAddress && locationAttempted && (
                       <p className="text-xs text-destructive mt-1">Please pin your gym location on the map</p>
+                    )}
+                    {isMainBranch && (
+                      <div className="mt-3">
+                        <RegisterAreaField cityId={organization?.cityId ?? null} value={gymArea} onChange={setGymArea} />
+                        {locationAttempted && !areaPayload(gymArea) && (
+                          <p className="text-xs text-destructive mt-1">Please pick your area, or keep the one you typed.</p>
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -1081,13 +1089,19 @@ export function GymOwnerRegister({
                             onLocationChange={setBranchLocation}
                             onAddressChange={setBranchAddress}
                             onPlaceChange={setBranchPlaceId}
-                            onAreaChange={setBranchAreaId}
+                            onAreaChange={(a) => setBranchArea(a ? { areaId: a.id, areaName: a.name } : {})}
                             cityId={organization?.cityId ?? null}
                             label="Branch address"
                             height="220px"
                             placeholder="Search for branch address…"
                             mapId="branch-location-picker"
                           />
+                          <div className="mt-3">
+                            <RegisterAreaField cityId={organization?.cityId ?? null} value={branchArea} onChange={setBranchArea} />
+                            {locationAttempted && !areaPayload(branchArea) && (
+                              <p className="text-xs text-destructive mt-1">Please pick your area, or keep the one you typed.</p>
+                            )}
+                          </div>
                         </div>
                         <div className="relative">
                           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1129,6 +1143,11 @@ export function GymOwnerRegister({
                         if (!gymAddress) {
                           setLocationAttempted(true)
                           setError('Please pin your gym location on the map.')
+                          return
+                        }
+                        if (!areaPayload(isMainBranch ? gymArea : branchArea)) {
+                          setLocationAttempted(true)
+                          setError('Please pick your area, or keep the one you typed.')
                           return
                         }
                         setError('')

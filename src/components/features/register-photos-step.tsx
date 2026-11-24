@@ -6,24 +6,23 @@ import { Button } from '@/components/ui/button'
 import { organizationsApi } from '@/lib/api/organizations'
 import { extractValidationErrorMessage } from '@/lib/utils'
 
-// Photo count rules are client-side only (the backend has no minimum). The
+// Photo count rules are client-side only (FirstBranch needs at least 3 URLs). The
 // type and size limits mirror the backend's upload.images middleware
 // (src/middleware/upload.js): JPEG/PNG/WebP, 10 MB each. The server stays the
 // authority and its messages are shown as-is.
-export const MIN_PHOTOS = 5
+export const MIN_PHOTOS = 3
 export const MAX_PHOTOS = 10
 export const MAX_PHOTO_BYTES = 10 * 1024 * 1024
 export const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 interface Props {
-  organizationId: string
   photos: string[]
   onChange: (photos: string[]) => void
   onBack: () => void
   onContinue: () => void
 }
 
-export function RegisterPhotosStep({ organizationId, photos, onChange, onBack, onContinue }: Props) {
+export function RegisterPhotosStep({ photos, onChange, onBack, onContinue }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -47,8 +46,9 @@ export function RegisterPhotosStep({ organizationId, photos, onChange, onBack, o
 
     setBusy(true)
     try {
-      const res = await organizationsApi.uploadFirstBusinessImages(organizationId, files)
-      onChange(res.data.imagesJson)
+      // A3 J12: stateless upload; the wizard keeps the URLs and sends them in firstBranch.imagesJson.
+      const res = await organizationsApi.uploadStagingImages(files)
+      onChange([...photos, ...res.data.urls])
     } catch (err) {
       setError(extractValidationErrorMessage(err, 'Failed to upload photos.'))
     } finally {
@@ -56,18 +56,10 @@ export function RegisterPhotosStep({ organizationId, photos, onChange, onBack, o
     }
   }
 
-  const remove = async (index: number) => {
-    const next = photos.filter((_, i) => i !== index)
+  // Nothing is stored on the server before submit, so removing a photo only drops its URL here.
+  const remove = (index: number) => {
     setError('')
-    setBusy(true)
-    try {
-      await organizationsApi.replaceFirstBusinessImages(organizationId, next)
-      onChange(next)
-    } catch (err) {
-      setError(extractValidationErrorMessage(err, 'Failed to remove photo.'))
-    } finally {
-      setBusy(false)
-    }
+    onChange(photos.filter((_, k) => k !== index))
   }
 
   return (

@@ -83,13 +83,13 @@ describe('NEW-140: the registration location picker', () => {
     expect(onPlaceChange).toHaveBeenLastCalledWith('addr-mm-alam')
   })
 
-  it('A3 J10: passes the matched area id up, and clears it when the address is typed by hand', async () => {
+  it('A3 J10: passes the matched area up, and clears it when the address is typed by hand', async () => {
     const { onAreaChange } = await setup()
     const input = screen.getByRole('combobox', { name: /gym address/i })
     fireEvent.focus(input)
     fireEvent.change(input, { target: { value: '12 MM' } })
     fireEvent.click(await screen.findByRole('button', { name: /12 MM Alam Road/ }))
-    await waitFor(() => expect(onAreaChange).toHaveBeenLastCalledWith(71))
+    await waitFor(() => expect(onAreaChange).toHaveBeenLastCalledWith({ id: 71, name: "Gulberg III" }))
     fireEvent.change(input, { target: { value: '12 MM Alam R' } })
     expect(onAreaChange).toHaveBeenLastCalledWith(null)
   })
