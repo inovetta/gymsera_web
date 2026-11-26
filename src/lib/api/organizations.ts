@@ -68,8 +68,20 @@ export interface HostBusiness {
   createdAt?: string
 }
 
+/** HostStatus.nextStep (contract v2 §3, NEW-303 M3e): null, or what the host does next for the first business. */
+export interface HostNextStep {
+  key: 'upload_proof_of_premises' | 'wait_for_business_approval'
+  businessId: string
+}
+
 /** The host's businesses and their documents (enterprise D10, contract v2 new routes). */
 export const hostBusinessesApi = {
+  /** `nextStep` of GET /host/status: the server decides the step and the business. */
+  nextStep: async (): Promise<HostNextStep | null> => {
+    const { data } = await apiClient.get('/host/status')
+    return data?.data?.nextStep ?? null
+  },
+
   /** GET /host/businesses: the live API answers a bare array in `data`; `{ businesses }` is read too. */
   list: async (): Promise<HostBusiness[]> => {
     const { data } = await apiClient.get('/host/businesses')
