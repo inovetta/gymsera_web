@@ -83,7 +83,7 @@ describe('web signup: wizard order (business, details, location, photos, plans, 
   beforeEach(() => {
     vi.clearAllMocks()
     search.value = ''
-    mockOrganizations.register.mockResolvedValue({ data: { organization: { id: 't1', cityId: 1 } } })
+    mockOrganizations.register.mockResolvedValue({ data: { organization: { id: 't1', cityId: 1, organizationName: 'Iron Paradise Ltd' } } })
     mockOrganizations.uploadStagingImages.mockResolvedValue({
       data: { urls: [1, 2, 3, 4, 5].map((n) => `https://cdn.test/${n}.jpg`) },
     })
@@ -115,6 +115,10 @@ describe('web signup: wizard order (business, details, location, photos, plans, 
     click(screen.getByRole('button', { name: /Continue to Photos/ }))
     expect(await screen.findByText('Please pin your gym location on the map.')).toBeInTheDocument()
     click(screen.getByRole('button', { name: 'pin location' }))
+    // FirstBranch.phone is required by the API: no phone, no next step.
+    click(screen.getByRole('button', { name: /Continue to Photos/ }))
+    expect(await screen.findByText('Please add the branch phone number.')).toBeInTheDocument()
+    type(screen.getByPlaceholderText('Branch phone number'), '0421234567')
     click(screen.getByRole('button', { name: /Continue to Photos/ }))
 
     // 3. photos — gated at 3 (FirstBranch needs at least 3 urls)

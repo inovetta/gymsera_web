@@ -32,6 +32,7 @@ import { RegisterPlansStep, PlanDraft, draftsToApiPlans } from '@/components/fea
 import { RegisterAreaField, areaPayload, AreaValue } from '@/components/features/places/register-area-field'
 import { uniformWeek } from '@/lib/hours'
 import { RegisterPhotosStep } from '@/components/features/register-photos-step'
+import { ProofOfPremisesUpload } from '@/components/features/proof-of-premises-upload'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
@@ -387,9 +388,10 @@ export function GymOwnerRegister({
 
   const gymProfileMutation = useMutation({
     mutationFn: (data: GymProfileData) => organizationsApi.submitFirstBusiness(organization!.id, {
+      // Contract v2 row 46: organizationName is required; genderType is not a key of this route (422 unknown_field).
+      organizationName: organization?.organizationName || businessForm.getValues('organizationName'),
       firstBusinessName: data.name,
       firstBusinessDescription: data.description,
-      genderType: data.genderType,
       // A3 J10: one FirstBranch body (branchName, googlePlaceId, imagesJson >= 3, packages, areaId).
       firstBranch: {
         branchName: isMainBranch ? data.name : (branchName || data.name),
@@ -399,7 +401,7 @@ export function GymOwnerRegister({
         latitude: (isMainBranch ? gymLocation?.lat : branchLocation?.lat) as number,
         longitude: (isMainBranch ? gymLocation?.lng : branchLocation?.lng) as number,
         ...((isMainBranch ? gymPlaceId : branchPlaceId) ? { googlePlaceId: (isMainBranch ? gymPlaceId : branchPlaceId) as string } : {}),
-        ...((isMainBranch ? branchPhone : branchBPhone) ? { phone: (isMainBranch ? branchPhone : branchBPhone) } : {}),
+        phone: (isMainBranch ? branchPhone : branchBPhone).trim(),
         hours: isMainBranch ? uniformWeek(openingTime, closingTime) : uniformWeek(branchOpeningTime, branchClosingTime),
         imagesJson: photos,
         packages: draftsToApiPlans(plans),
@@ -1044,7 +1046,7 @@ export function GymOwnerRegister({
                     {isMainBranch && (
                       <div className="space-y-4 pt-3 border-t">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          Branch Contact & Hours <span className="font-normal normal-case">(optional)</span>
+                          Branch Contact & Hours <span className="font-normal normal-case">(phone required)</span>
                         </p>
                         <div className="relative">
                           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1148,6 +1150,12 @@ export function GymOwnerRegister({
                         if (!areaPayload(isMainBranch ? gymArea : branchArea)) {
                           setLocationAttempted(true)
                           setError('Please pick your area, or keep the one you typed.')
+                          return
+                        }
+                        // FirstBranch.phone is required by the API (A2 H2).
+                        if (!(isMainBranch ? branchPhone : branchBPhone).trim()) {
+                          setLocationAttempted(true)
+                          setError('Please add the branch phone number.')
                           return
                         }
                         setError('')
@@ -1492,6 +1500,9 @@ export function GymOwnerRegister({
                     We&apos;ll be in touch within <strong>1–2 business days</strong>.
                   </p>
                 </div>
+
+                {/* Enterprise D10: the next thing the host does is proof of premises (also at /gym-owner/proof-of-premises). */}
+                <ProofOfPremisesUpload />
 
                 {/* Summary card */}
                 <div className="text-left bg-card border rounded-2xl overflow-hidden">

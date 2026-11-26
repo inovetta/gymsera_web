@@ -37,14 +37,56 @@ export interface FirstBranch {
 
 /** POST /organizations/:organizationId/first-business (A3 J10): the first business and its `firstBranch`. */
 export interface FirstBusinessPayload {
-  /** Only sent when it changed (the organization name step). */
-  organizationName?: string
+  /** Required by the API (contract row 46; live check 2026-11-26). */
+  organizationName: string
   firstBusinessName: string
   firstBusinessDescription: string
-  genderType?: string
-  logoUrl?: string
-  coverImageUrl?: string
+  /** Only these four keys: the route refuses any other key (422 unknown_field), genderType included. */
   firstBranch: FirstBranch
+}
+
+/** A2 H3: one business document. No file name or URL is sent. */
+export interface BusinessDocument {
+  id: string
+  type: 'PROOF_OF_PREMISES' | 'BUSINESS_REGISTRATION'
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  uploadedAt: string
+  reviewedAt: string | null
+  rejectionReason: string | null
+}
+
+/** The host's view of one business (GET /host/businesses), the keys the website reads. */
+export interface HostBusiness {
+  id: string
+  name: string
+  status: string
+  businessVerified?: boolean
+  kycStatus?: string
+  /** What approval still needs: `PROOF_OF_PREMISES`, `PHOTOS_MIN_3`. */
+  missingForApproval?: string[]
+  kycDocuments?: BusinessDocument[]
+  createdAt?: string
+}
+
+/** The host's businesses and their documents (enterprise D10, contract v2 new routes). */
+export const hostBusinessesApi = {
+  /** GET /host/businesses: the live API answers a bare array in `data`; `{ businesses }` is read too. */
+  list: async (): Promise<HostBusiness[]> => {
+    const { data } = await apiClient.get('/host/businesses')
+    const d = data?.data
+    return Array.isArray(d) ? d : Array.isArray(d?.businesses) ? d.businesses : []
+  },
+
+  /** POST /host/businesses/:businessId/kyc-documents, body `type`, files `documents`. */
+  uploadDocument: async (businessId: string, type: BusinessDocument['type'], file: File): Promise<BusinessDocument[]> => {
+    const formData = new FormData()
+    formData.append('type', type)
+    formData.append('documents', file)
+    const { data } = await apiClient.post(`/host/businesses/${businessId}/kyc-documents`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data?.data?.documents ?? []
+  },
 }
 
 export interface SelectPackagePayload {

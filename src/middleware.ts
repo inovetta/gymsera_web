@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { buildCsp, newNonce } from '@/lib/csp'
 
-const PROTECTED_ROUTES = ['/dashboard', '/profile', '/subscriptions', '/payments', '/account-statement']
+const PROTECTED_ROUTES = ['/dashboard', '/profile', '/subscriptions', '/payments', '/account-statement', '/gym-owner/proof-of-premises']
 const AUTH_ROUTES = ['/auth/login', '/auth/register', '/auth/verify', '/auth/forgot-password']
 
 export function middleware(request: NextRequest) {

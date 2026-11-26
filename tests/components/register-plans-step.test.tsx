@@ -120,6 +120,7 @@ async function toPlansStep() {
   await user.click(screen.getByRole('button', { name: /Continue to Location/ }))
   await user.click(await screen.findByRole('button', { name: 'pin location' }))
   if (!matched.area) await keepTypedArea('Gulberg Extension')
+  await user.type(screen.getByPlaceholderText('Branch phone number'), '0421234567')
   await user.click(screen.getByRole('button', { name: /Continue to Photos/ }))
   const files = [1, 2, 3, 4, 5].map(photoFile)
   fireEvent.change(await screen.findByTestId('photo-input'), { target: { files } })
@@ -133,7 +134,7 @@ describe('web signup: membership plans step', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     matched.area = { id: 42, name: 'Gulberg III' }
-    mockOrganizations.register.mockResolvedValue({ data: { organization: { id: 't1', cityId: 1 } } })
+    mockOrganizations.register.mockResolvedValue({ data: { organization: { id: 't1', cityId: 1, organizationName: 'Iron Paradise Ltd' } } })
     mockOrganizations.submitFirstBusiness.mockResolvedValue({ data: { organization: { id: 't1' } } })
     mockOrganizations.uploadStagingImages.mockResolvedValue({
       data: { urls: [1, 2, 3, 4, 5].map((n) => `https://cdn.test/${n}.jpg`) },
@@ -177,12 +178,14 @@ describe('web signup: membership plans step', () => {
       },
     ])
     // A3 J10: the body is organization/business keys plus ONE firstBranch; no flat address, no firstBranchDraft.
-    expect(Object.keys(payload).sort()).toEqual(['firstBranch', 'firstBusinessDescription', 'firstBusinessName', 'genderType'])
+    // Live API check 2026-11-26: organizationName is required and genderType is refused (422 unknown_field).
+    expect(Object.keys(payload).sort()).toEqual(['firstBranch', 'firstBusinessDescription', 'firstBusinessName', 'organizationName'])
+    expect(payload.organizationName).toBe('Iron Paradise Ltd')
     expect(payload).not.toHaveProperty('firstBranchDraft')
     const fb = payload.firstBranch
     expect(fb).toMatchObject({
       branchName: 'Iron Paradise', cityId: 1, areaId: 42, address: '1 Main Rd', latitude: 31.5, longitude: 74.3,
-      googlePlaceId: 'gp-1',
+      googlePlaceId: 'gp-1', phone: '0421234567',
     })
     expect(fb).not.toHaveProperty('areaRequestId')
     // Hours: the contract's WeeklyHours, default 06:00-22:00 on every day (no openingTime/closingTime pair).
@@ -267,6 +270,7 @@ describe('web signup: membership plans step', () => {
     await user.click(screen.getByRole('button', { name: 'Mixed (Men & Women)' }))
     await user.click(screen.getByRole('button', { name: /Continue to Location/ }))
     await user.click(await screen.findByRole('button', { name: 'pin location' }))
+    await user.type(screen.getByPlaceholderText('Branch phone number'), '0421234567')
     await user.click(screen.getByRole('button', { name: /Continue to Photos/ }))
     mockOrganizations.uploadStagingImages.mockResolvedValueOnce({ data: { urls: ['https://cdn.test/1.jpg', 'https://cdn.test/2.jpg'] } })
     fireEvent.change(await screen.findByTestId('photo-input'), { target: { files: [1, 2].map(photoFile) } })
