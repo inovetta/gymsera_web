@@ -178,8 +178,9 @@ describe('web signup: membership plans step', () => {
       },
     ])
     // A3 J10: the body is organization/business keys plus ONE firstBranch; no flat address, no firstBranchDraft.
-    // Live API check 2026-11-26: organizationName is required and genderType is refused (422 unknown_field).
-    expect(Object.keys(payload).sort()).toEqual(['firstBranch', 'firstBusinessDescription', 'firstBusinessName', 'organizationName'])
+    // Contract row 46 (live check against be 36930cd): organizationName required, genderType sent.
+    expect(Object.keys(payload).sort()).toEqual(['firstBranch', 'firstBusinessDescription', 'firstBusinessName', 'genderType', 'organizationName'])
+    expect(payload.genderType).toBe('MIXED')
     expect(payload.organizationName).toBe('Iron Paradise Ltd')
     expect(payload).not.toHaveProperty('firstBranchDraft')
     const fb = payload.firstBranch

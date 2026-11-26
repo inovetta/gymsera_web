@@ -41,7 +41,11 @@ export interface FirstBusinessPayload {
   organizationName: string
   firstBusinessName: string
   firstBusinessDescription: string
-  /** Only these four keys: the route refuses any other key (422 unknown_field), genderType included. */
+  /** MIXED | MALE_ONLY | FEMALE_ONLY (row 46 since be 36930cd). */
+  genderType?: 'MIXED' | 'MALE_ONLY' | 'FEMALE_ONLY'
+  /** Optional: URLs from POST /host/staging-images. The wizard collects neither today. */
+  logoUrl?: string
+  coverImageUrl?: string
   firstBranch: FirstBranch
 }
 

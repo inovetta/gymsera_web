@@ -25,7 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { LocationPicker, LatLng } from '@/components/features/location-picker'
 import { authApi } from '@/lib/api/auth'
 import { PlaceSearch } from '@/components/features/places/place-search'
-import { organizationsApi } from '@/lib/api/organizations'
+import { organizationsApi, type FirstBusinessPayload } from '@/lib/api/organizations'
 import { packagesApi } from '@/lib/api/packages'
 import { billingPlansApi } from '@/lib/api/billing-plans'
 import { RegisterPlansStep, PlanDraft, draftsToApiPlans } from '@/components/features/register-plans-step'
@@ -388,10 +388,11 @@ export function GymOwnerRegister({
 
   const gymProfileMutation = useMutation({
     mutationFn: (data: GymProfileData) => organizationsApi.submitFirstBusiness(organization!.id, {
-      // Contract v2 row 46: organizationName is required; genderType is not a key of this route (422 unknown_field).
+      // Contract v2 row 46 (be 36930cd): organizationName is required; genderType is a key of this route.
       organizationName: organization?.organizationName || businessForm.getValues('organizationName'),
       firstBusinessName: data.name,
       firstBusinessDescription: data.description,
+      genderType: data.genderType as FirstBusinessPayload['genderType'],
       // A3 J10: one FirstBranch body (branchName, googlePlaceId, imagesJson >= 3, packages, areaId).
       firstBranch: {
         branchName: isMainBranch ? data.name : (branchName || data.name),
