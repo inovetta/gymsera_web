@@ -12,13 +12,13 @@ vi.mock('next/navigation', () => ({
 }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }), toast: vi.fn() }))
 
-const mockTenants = vi.hoisted(() => ({
-  registerTenant: vi.fn(),
-  submitGymProfile: vi.fn(),
+const mockOrganizations = vi.hoisted(() => ({
+  register: vi.fn(),
+  submitFirstBusiness: vi.fn(),
   selectPackage: vi.fn(),
   finalizeApplication: vi.fn(),
 }))
-vi.mock('@/lib/api/tenants', () => ({ tenantsApi: mockTenants }))
+vi.mock('@/lib/api/organizations', () => ({ organizationsApi: mockOrganizations }))
 vi.mock('@/lib/api/billing-plans', () => ({
   billingPlansApi: {
     getPlans: vi.fn().mockResolvedValue({ data: { plans: [] } }),
@@ -75,7 +75,7 @@ describe('UX-24 A4: terms checkbox on the payment step', () => {
     renderPayment()
     const submit = await screen.findByRole('button', { name: /submit application/i })
     fireEvent.click(submit)
-    await waitFor(() => expect(mockTenants.finalizeApplication).not.toHaveBeenCalled())
+    await waitFor(() => expect(mockOrganizations.finalizeApplication).not.toHaveBeenCalled())
   })
 
   it('links to the real /terms and /privacy routes', async () => {
@@ -87,7 +87,7 @@ describe('UX-24 A4: terms checkbox on the payment step', () => {
 
   it('does not send the checkbox to the backend (mobile keeps it UI-only)', () => {
     const src = readFileSync(join(process.cwd(), 'src/components/features/gym-owner-register.tsx'), 'utf8')
-    const call = src.slice(src.indexOf('tenantsApi.finalizeApplication('))
+    const call = src.slice(src.indexOf('organizationsApi.finalizeApplication('))
     const body = call.slice(0, call.indexOf('}),') + 3)
     expect(body).toContain("paymentMethod: paymentMethod === 'bank' ? 'BANK_TRANSFER' : 'PAY_LATER'")
     expect(body).toContain('bankTransferRef: bankRef || undefined')

@@ -19,6 +19,7 @@ import { ErrorState, statusOf } from '@/components/features/error-state'
 import { GymMap } from '@/components/features/gym-map'
 import { SubscribeFlowDialog } from '@/components/features/subscribe-flow-dialog'
 import { discoveryApi } from '@/lib/api/discovery'
+import { VerifiedCheck } from '@/components/features/verified-check'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
 import { MembershipPlan, Branch } from '@/types'
@@ -38,8 +39,8 @@ export default function BranchDetailPage() {
   const hideMap = useCallback(() => setMapUnavailable(true), [])
 
   const { data: gymData, isLoading, error: gymError, refetch: refetchGym } = useQuery({
-    queryKey: ['gym', gymId],
-    queryFn: () => discoveryApi.getGym(gymId),
+    queryKey: ['business', gymId],
+    queryFn: () => discoveryApi.getBusiness(gymId),
     enabled: !!gymId,
   })
 
@@ -186,9 +187,13 @@ export default function BranchDetailPage() {
                   <Image src={gym.logoUrl} alt={gym.name} width={32} height={32} className="object-contain" />
                 </div>
               )}
-              <span className="text-white/70 text-sm">{gym.name}</span>
+              <span className="inline-flex items-center gap-1 text-white/70 text-sm">
+                {gym.name}
+                <VerifiedCheck verified={gym.businessVerified} className="inline-flex items-center text-white" />
+              </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">{branch.branchName}</h1>
+            {/* "<Business> · <Branch>": the traveller title (enterprise D3); never the organization. */}
+            <h1 className="text-2xl sm:text-3xl font-bold text-white" data-testid="branch-title">{gym.name} · {branch.branchName}</h1>
             {branch.city && (
               <p className="text-white/80 text-sm mt-1 flex items-center gap-1">
                 <MapPin className="h-3.5 w-3.5" />
@@ -355,7 +360,7 @@ export default function BranchDetailPage() {
         onOpenChange={setShowSubscribeDialog}
         plan={selectedPlan}
         branch={branch}
-        gymListingId={gymId}
+        businessId={gymId}
       />
     </div>
   )

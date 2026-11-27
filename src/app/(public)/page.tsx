@@ -46,12 +46,12 @@ const ownerBenefits = [
 export default function HomePage() {
   const { data: featuredData, isLoading: featuredLoading, error: featuredError, refetch: refetchFeatured } = useQuery({
     queryKey: ['featured-gyms'],
-    queryFn: () => discoveryApi.getFeaturedGyms(),
+    queryFn: () => discoveryApi.getFeaturedBranches(),
   })
 
   const { data: topRatedData, isLoading: topRatedLoading, error: topRatedError, refetch: refetchTopRated } = useQuery({
     queryKey: ['top-rated-gyms'],
-    queryFn: () => discoveryApi.getTopRatedGyms(),
+    queryFn: () => discoveryApi.getTopRatedBranches(),
   })
 
   const { data: citiesData, isLoading: citiesLoading } = useQuery({
@@ -59,8 +59,8 @@ export default function HomePage() {
     queryFn: () => discoveryApi.getCities(),
   })
 
-  const featuredGyms = featuredData?.data?.gyms || []
-  const topRatedGyms = topRatedData?.data?.gyms || []
+  const featuredGyms = featuredData?.data?.branches || []
+  const topRatedGyms = topRatedData?.data?.branches || []
   const cities = citiesData?.data?.cities?.filter((c) => c.isActive !== false) || []
 
   return (

@@ -11,14 +11,21 @@ export interface HostPaymentDetails {
   easyPaisaNumber?: string | null
   additionalInstructions?: string | null
 }
-import { ApiResponse, City, GymListing, GymReview } from '@/types'
+import { ApiResponse, Branch, City, GymListing, GymReview, MembershipPlan } from '@/types'
 
+/**
+ * A branch card or a business as discovery sends it (API contract v2 §3 BranchCard / BusinessPublic).
+ * Travellers see business and branch names only: `organizationName`, `organization` and `tenant` are
+ * never read here (enterprise D3), so nothing of them can reach a page.
+ */
 function normalizeGym(raw: any): GymListing {
   const facilitiesJson: Record<string, boolean> = raw.facilitiesJson ?? {}
+  // A branch card names itself "<Business> · <Branch>" (displayName); a business has only its name.
+  const name = raw.displayName ?? raw.name
   return {
     ...raw,
-    name: raw.name ?? raw.title,
-    description: raw.description ?? raw.shortDescription,
+    name,
+    description: raw.description,
     featured: raw.featured ?? raw.isFeatured ?? false,
     phone: raw.phone ?? raw.contactPhone,
     averageRating: Number(raw.averageRating) || 0,
@@ -29,8 +36,7 @@ function normalizeGym(raw: any): GymListing {
     currency: raw.currency,
     facilities: raw.facilities ?? Object.keys(facilitiesJson).filter((k) => facilitiesJson[k]),
     images: raw.images ?? raw.imagesJson ?? [],
-    // NEW-269 (R-112): the brand, from the gym detail's tenant.
-    brandName: raw.brandName ?? raw.tenant?.businessName ?? null,
+    businessVerified: raw.businessVerified === true,
   }
 }
 
@@ -66,53 +72,54 @@ export const discoveryApi = {
     return data
   },
 
-  getFeaturedGyms: async (): Promise<ApiResponse<{ gyms: GymListing[] }>> => {
-    const { data } = await apiClient.get('/discovery/gyms/featured')
-    if (data?.data?.gyms) data.data.gyms = data.data.gyms.map(normalizeGym)
+  getFeaturedBranches: async (): Promise<ApiResponse<{ branches: GymListing[] }>> => {
+    const { data } = await apiClient.get('/discovery/branches/featured')
+    if (data?.data?.branches) data.data.branches = data.data.branches.map(normalizeGym)
     return data
   },
 
-  getTopRatedGyms: async (): Promise<ApiResponse<{ gyms: GymListing[] }>> => {
-    const { data } = await apiClient.get('/discovery/gyms/top-rated')
-    if (data?.data?.gyms) data.data.gyms = data.data.gyms.map(normalizeGym)
+  getTopRatedBranches: async (): Promise<ApiResponse<{ branches: GymListing[] }>> => {
+    const { data } = await apiClient.get('/discovery/branches/top-rated')
+    if (data?.data?.branches) data.data.branches = data.data.branches.map(normalizeGym)
     return data
   },
 
-  getNearbyGyms: async (lat: number, lng: number, radius = 10): Promise<ApiResponse<{ gyms: GymListing[] }>> => {
-    const { data } = await apiClient.get('/discovery/gyms/nearby', { params: { lat, lng, radius } })
-    if (data?.data?.gyms) data.data.gyms = data.data.gyms.map(normalizeGym)
+  getNearbyBranches: async (lat: number, lng: number, radius = 10): Promise<ApiResponse<{ branches: GymListing[] }>> => {
+    const { data } = await apiClient.get('/discovery/branches/nearby', { params: { lat, lng, radius } })
+    if (data?.data?.branches) data.data.branches = data.data.branches.map(normalizeGym)
     return data
   },
 
-  getGyms: async (params?: GetGymsParams): Promise<ApiResponse<{ gyms: GymListing[] }>> => {
-    const { data } = await apiClient.get('/discovery/gyms', { params })
-    if (data?.data?.gyms) data.data.gyms = data.data.gyms.map(normalizeGym)
+  getBranches: async (params?: GetGymsParams): Promise<ApiResponse<{ branches: GymListing[] }>> => {
+    const { data } = await apiClient.get('/discovery/branches', { params })
+    if (data?.data?.branches) data.data.branches = data.data.branches.map(normalizeGym)
     return data
   },
 
-  /** The gym's own bank / wallet details for a traveller's transfer (null = none added). Same call as the app. */
-  getPaymentDetails: async (gymListingId: string): Promise<HostPaymentDetails | null> => {
-    const { data } = await apiClient.get(`/discovery/gyms/${gymListingId}/payment-details`)
+  /** The business's own bank / wallet details for a traveller's transfer (null = none added). Same call as the app. */
+  getPaymentDetails: async (businessId: string): Promise<HostPaymentDetails | null> => {
+    const { data } = await apiClient.get(`/discovery/businesses/${businessId}/payment-details`)
     return (data?.data?.paymentDetails as HostPaymentDetails | null | undefined) ?? null
   },
 
-  getGym: async (id: string): Promise<ApiResponse<GymListing>> => {
-    const { data } = await apiClient.get(`/discovery/gyms/${id}`)
-    if (data?.data?.gym) {
-      const branches = data.data.branches ?? data.data.gym.branches ?? []
+  /** GET /discovery/businesses/:businessId → `{ business, membershipPlans }`, branches inside the business. */
+  getBusiness: async (businessId: string): Promise<ApiResponse<GymListing & { branches: Branch[]; membershipPlans: MembershipPlan[] }>> => {
+    const { data } = await apiClient.get(`/discovery/businesses/${businessId}`)
+    if (data?.data?.business) {
+      const branches = data.data.business.branches ?? []
       const membershipPlans = data.data.membershipPlans ?? []
-      data.data = { ...normalizeGym(data.data.gym), branches, membershipPlans }
+      data.data = { ...normalizeGym(data.data.business), branches, membershipPlans }
     }
     return data
   },
 
-  getGymReviews: async (id: string, params?: GetReviewsParams): Promise<ApiResponse<{ reviews: GymReview[] }>> => {
-    const { data } = await apiClient.get(`/discovery/gyms/${id}/reviews`, { params })
+  getBusinessReviews: async (businessId: string, params?: GetReviewsParams): Promise<ApiResponse<{ reviews: GymReview[] }>> => {
+    const { data } = await apiClient.get(`/discovery/businesses/${businessId}/reviews`, { params })
     return data
   },
 
-  submitReview: async (id: string, payload: SubmitReviewPayload): Promise<ApiResponse<{ review: GymReview }>> => {
-    const { data } = await apiClient.post(`/discovery/gyms/${id}/reviews`, payload)
+  submitReview: async (businessId: string, payload: SubmitReviewPayload): Promise<ApiResponse<{ review: GymReview }>> => {
+    const { data } = await apiClient.post(`/discovery/businesses/${businessId}/reviews`, payload)
     return data
   },
 }

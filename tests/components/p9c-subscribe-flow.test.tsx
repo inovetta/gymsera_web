@@ -27,7 +27,7 @@ vi.mock('@/hooks/use-auth', () => ({ useAuth: () => ({ user: { id: 'u1' }, isAut
 vi.mock('@/components/features/gym-map', () => ({ GymMap: () => <div /> }))
 
 const plan = {
-  id: 'plan-1', gymId: 'gym-1', branchId: 'br-1', name: 'Monthly Pass', durationType: 'MONTHLY', durationValue: 1,
+  id: 'plan-1', businessId: 'gym-1', branchId: 'br-1', name: 'Monthly Pass', durationType: 'MONTHLY', durationValue: 1,
   price: 3000, currency: 'PKR', joiningFee: 0, securityFee: 0, freezeLimitDays: 0, isTrial: false, status: 'ACTIVE',
 } as any
 const branch = { id: 'br-1', branchName: 'Main Branch', address: 'Street 1' }
@@ -36,7 +36,7 @@ const bankDetails = { bankName: 'Meezan', accountTitle: 'Iron Gym', accountNumbe
 const wrap = (ui: React.ReactElement) =>
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
 const dialog = () =>
-  wrap(<SubscribeFlowDialog open onOpenChange={() => {}} plan={plan} branch={branch} gymListingId="gym-1" />)
+  wrap(<SubscribeFlowDialog open onOpenChange={() => {}} plan={plan} branch={branch} businessId="gym-1" />)
 const jpeg = (size = 1000, type = 'image/jpeg') => {
   const f = new File(['x'], 'receipt.jpg', { type })
   Object.defineProperty(f, 'size', { value: size })
@@ -62,7 +62,7 @@ const toPayment = async () => {
 
 describe('website subscribe flow (P9c B)', () => {
   it('the branch page shows the gym\'s bank details and the server\'s amount before anything is paid', async () => {
-    vi.spyOn(discoveryApi, 'getGym').mockResolvedValue({ success: true, data: { id: 'gym-1', branches: [branch], membershipPlans: [plan] } } as any)
+    vi.spyOn(discoveryApi, 'getBusiness').mockResolvedValue({ success: true, data: { id: 'gym-1', branches: [branch], membershipPlans: [plan] } } as any)
     wrap(<BranchDetailPage />)
     fireEvent.click(await screen.findByRole('button', { name: 'Subscribe Now' }))
     const modal = await screen.findByRole('dialog')

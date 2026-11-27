@@ -52,10 +52,10 @@ interface SubscribeFlowDialogProps {
   onOpenChange: (open: boolean) => void
   plan: MembershipPlan | null
   branch: { id: string; branchName: string; address?: string | null } | null
-  gymListingId: string
+  businessId: string
 }
 
-export function SubscribeFlowDialog({ open, onOpenChange, plan, branch, gymListingId }: SubscribeFlowDialogProps) {
+export function SubscribeFlowDialog({ open, onOpenChange, plan, branch, businessId }: SubscribeFlowDialogProps) {
   const router = useRouter()
   const fileInput = useRef<HTMLInputElement>(null)
   const [step, setStep] = useState<Step>('review')
@@ -78,8 +78,8 @@ export function SubscribeFlowDialog({ open, onOpenChange, plan, branch, gymListi
   }, [open, plan?.id, branch?.id])
 
   const details = useQuery({
-    queryKey: ['gym-payment-details', gymListingId],
-    queryFn: () => discoveryApi.getPaymentDetails(gymListingId),
+    queryKey: ['business-payment-details', businessId],
+    queryFn: () => discoveryApi.getPaymentDetails(businessId),
     enabled: open && step === 'payment',
   })
   const detailsReady = details.isSuccess
@@ -92,7 +92,7 @@ export function SubscribeFlowDialog({ open, onOpenChange, plan, branch, gymListi
   const requestOnly = detailsReady && !bank && wallets.length === 0
 
   const book = useMutation({
-    mutationFn: () => subscriptionsApi.createSubscription({ planId: plan!.id, gymListingId, branchId: branch!.id }),
+    mutationFn: () => subscriptionsApi.createSubscription({ planId: plan!.id, businessId, branchId: branch!.id }),
     onSuccess: (res) => {
       const amount = Number(res.data.payment?.amount ?? 0)
       setBooking({ subscriptionId: res.data.subscription.id, amount, currency: res.data.payment?.currency })

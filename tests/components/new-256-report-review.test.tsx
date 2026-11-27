@@ -68,7 +68,7 @@ describe('Report on a review', () => {
 })
 
 describe('ReviewCard', () => {
-  const review = { id: 'rev-1', gymListingId: 'g1', userId: 'u2', rating: 4, title: 'Good', body: 'Nice staff', status: 'APPROVED', createdAt: '2026-11-10T10:00:00Z' } as never
+  const review = { id: 'rev-1', businessId: 'g1', userId: 'u2', rating: 4, title: 'Good', body: 'Nice staff', status: 'APPROVED', createdAt: '2026-11-10T10:00:00Z' } as never
 
   it('shows the action under the review when given one, nothing otherwise', () => {
     const { rerender } = render(<ReviewCard review={review} action={<button>Report review</button>} />)

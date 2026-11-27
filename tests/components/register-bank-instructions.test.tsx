@@ -33,10 +33,10 @@ vi.mock('@/lib/api/packages', () => ({
   },
 }))
 
-vi.mock('@/lib/api/tenants', () => ({
-  tenantsApi: {
-    registerTenant: vi.fn(),
-    submitGymProfile: vi.fn(),
+vi.mock('@/lib/api/organizations', () => ({
+  organizationsApi: {
+    register: vi.fn(),
+    submitFirstBusiness: vi.fn(),
     selectPackage: vi.fn(),
     finalizeApplication: vi.fn(),
   },

@@ -10,15 +10,15 @@ const failure = (status: number, code: string, message: string) => ({
 })
 
 describe('BUG-14/15: tenant errors show plain copy', () => {
-  it('missing_tenant_context with the old developer sentence', () => {
-    const r = resolveApiError(failure(400, 'missing_tenant_context', RAW))
+  it('missing_organization_context with the old developer sentence', () => {
+    const r = resolveApiError(failure(400, 'missing_organization_context', RAW))
     expect(r.message).toBe('Choose a gym to continue.')
     expect(r.message).not.toContain('X-Tenant-Id')
     expect(r.requestId).toBe('req_web')
   })
 
-  it('tenant_not_active', () => {
-    expect(resolveApiError(failure(409, 'tenant_not_active', 'x')).message).toBe(
+  it('organization_not_active', () => {
+    expect(resolveApiError(failure(409, 'organization_not_active', 'x')).message).toBe(
       'Your gym is not live yet. Finish setting it up to use this.'
     )
   })

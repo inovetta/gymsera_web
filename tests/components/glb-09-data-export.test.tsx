@@ -54,7 +54,7 @@ describe('DataExportCard', () => {
   })
 
   it('warns when the file is incomplete', async () => {
-    getDataExport.mockResolvedValue({ complete: false, unavailable: [{ tenantId: 't1', gymName: 'Iron Gym' }] })
+    getDataExport.mockResolvedValue({ complete: false, unavailable: [{ organizationId: 't1', organizationName: 'Iron Gym' }] })
     render(<DataExportCard download={download} />)
 
     fireEvent.click(screen.getByRole('button', { name: /download my data/i }))
